@@ -1,7 +1,7 @@
 <view class="shell">
   <view class="left">
     <scroll-view scroll-y class="search">
-      <view class="heading">找个方便的地方</view>
+      <view class="row"><view class="heading">找个方便的地方</view><button class="text-button" bindtap="openSupport">♡ 支持我们</button></view>
       <view class="note">演示模式 · 虚构线路与点位，不用于实际导航</view>
       <input class="input" value="{{query}}" bindinput="onSearch" placeholder="搜索线路、站点、站台或标志物" confirm-type="search" maxlength="100" />
       <view class="pickers">
@@ -50,5 +50,15 @@
     <picker range="{{types}}" range-key="label" value="{{reportType}}" bindchange="onReportType"><view class="pick">类型：{{types[reportType].label}} ▾</view></picker>
     <picker range="{{statuses}}" value="{{reportStatus}}" bindchange="onReportStatus"><view class="pick">状态：{{statuses[reportStatus]}} ▾</view></picker>
     <view class="error" wx:if="{{reportError}}">{{reportError}}</view><button class="primary" bindtap="submitReport">加入本次演示</button>
+  </view>
+</view>
+
+<view wx:if="{{showSupport}}" class="mask" bindtap="closeSupport">
+  <view class="dialog" catchtap="stopTap">
+    <view class="row"><text class="subtitle">支持 WCFinder</text><button class="text-button" bindtap="closeSupport">关闭</button></view>
+    <view class="detail-line">如果 WCFinder 帮你找到了方便的地方，欢迎自愿支持项目，帮助承担服务器、地图查询和信息维护的费用。</view>
+    <view class="note">是否支持，不影响你使用找厕所功能。</view>
+    <view class="support-pending">收款方式尚未开通，感谢你的心意。</view>
+    <button class="primary" bindtap="closeSupport">继续找厕所</button>
   </view>
 </view>

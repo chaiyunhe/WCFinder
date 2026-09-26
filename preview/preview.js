@@ -1,0 +1,22 @@
+const service = WCFinder.createDemoService();
+const $ = id => document.getElementById(id);
+const stations = service.getStations();
+const active = new Set();
+const filterOptions = [['male','男厕'],['female','女厕'],['family','第三卫生间'],['baby','母婴室'],['accessible','无障碍'],['free','免费'],['open','营业中']];
+const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+$('line').add(new Option('全部线路',''));
+[...new Set(stations.flatMap(s=>s.lines))].forEach(line=>$('line').add(new Option(line,line)));
+function stationOptions(){const previous=$('station').value;$('station').replaceChildren(new Option('全部站点',''));stations.filter(s=>!$('line').value||s.lines.includes($('line').value)).forEach(s=>$('station').add(new Option(s.name,s.id)));if([...$('station').options].some(o=>o.value===previous))$('station').value=previous;}
+stationOptions();
+filterOptions.forEach(([id,label])=>{const b=document.createElement('button');b.textContent=label;b.setAttribute('aria-pressed','false');b.onclick=()=>{active.has(id)?active.delete(id):active.add(id);b.classList.toggle('active',active.has(id));b.setAttribute('aria-pressed',String(active.has(id)));render();};$('filters').append(b);});
+let results=[];
+function render(){results=service.search({query:$('query').value,filters:[...active],line:$('line').value,station:$('station').value,area:$('area').value});$('count').textContent=`找到 ${results.length} 个方便去处`;$('list').innerHTML=results.map(item=>`<button class="card" data-id="${escape(item.id)}"><div class="card-top"><h4>${escape(item.name)}</h4><span class="distance">${escape(item.distance)}</span></div><p class="sub">${escape(item.floor)} · ${escape(item.near)}</p><div class="tags">${item.labels.slice(0,4).map(l=>`<span>${escape(l)}</span>`).join('')}</div><div class="card-bottom"><b>${escape(item.status)}</b><span>${item.rating?'★ '+escape(item.rating):'待核实'} · 查看入口 →</span></div></button>`).join('')||'<div class="empty">没有符合条件的点位<br>试试减少筛选条件</div>';$('pins').innerHTML=results.map(i=>`<button class="pin" data-id="${escape(i.id)}" style="left:${i.x}%;top:${i.y}%" aria-label="${escape(i.name)}">${escape(i.typeLabel)}</button>`).join('');}
+function showDetail(id){const i=results.find(i=>i.id===id);if(!i)return;$('detailBody').innerHTML=`<div class="notice">演示点位 · 尚未实地核验</div><h2>${escape(i.name)}</h2><div class="tags">${i.labels.map(l=>`<span>${escape(l)}</span>`).join('')}</div><p><b>楼层</b><br>${escape(i.floor)}</p><p><b>入口指引</b><br>${escape(i.sign)}</p><p><b>附近标志物</b><br>${escape(i.near)}</p><p class="muted">${escape(service.describeMetro(i))}</p><div class="notice">真实地图尚未接入，当前不能用于路线导航。</div>`;$('detail').showModal();}
+['list','pins'].forEach(id=>$(id).onclick=e=>{const b=e.target.closest('[data-id]');if(b)showDetail(b.dataset.id);});
+$('query').oninput=render;$('line').onchange=()=>{stationOptions();render();};$('station').onchange=render;$('area').onchange=render;
+function setView(map){$('list').hidden=map;$('mapPanel').hidden=!map;['listTab','mapTab'].forEach((id,index)=>{const selected=Boolean(index)===map;$(id).classList.toggle('active',selected);$(id).setAttribute('aria-pressed',String(selected));});}
+$('listTab').onclick=()=>setView(false);$('mapTab').onclick=()=>setView(true);$('home').onclick=()=>{setView(false);document.querySelector('.content').scrollTo({top:0,behavior:'smooth'});};
+$('clear').onclick=()=>{$('query').value='';$('line').value='';$('station').value='';$('area').value='';active.clear();stationOptions();document.querySelectorAll('#filters button').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-pressed','false');});render();};
+$('support').onclick=()=>$('supportDialog').showModal();$('feedback').onclick=()=>$('feedbackDialog').showModal();document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).close());
+$('reportForm').onsubmit=e=>{e.preventDefault();const data=new FormData(e.target),name=data.get('name').trim(),hint=data.get('hint').trim();if(!name||!hint)return;const type=data.get('type'),label=filterOptions.find(f=>f[0]===type)[1];service.addFeedback({id:'user-'+Date.now(),name,floor:'用户反馈',near:hint,sign:hint,type,typeLabel:label,typeNote:'待核实',labels:[label,'用户反馈'],tags:[type],x:50,y:50,distance:'待核实',status:'待核实',rating:null,metro:null});$('clear').click();setView(false);$('feedbackDialog').close();e.target.reset();};
+render();

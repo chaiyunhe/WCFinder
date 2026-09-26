@@ -7,3 +7,5 @@ dist/
 *.log
 
 miniprogram/project.private.config.json
+
+project.private.config.json

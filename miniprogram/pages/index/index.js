@@ -9,7 +9,7 @@ Page({
     stations: [{ id: '', name: '全部站点' }], stationIndex: 0,
     areas: ['全部位置', '站厅', '站台', '站外'], areaIndex: 0,
     filters: ['男厕', '女厕', '第三卫生间', '母婴室', '无障碍', '免费', '营业中'].map((label, i) => ({ label, id: ['male', 'female', 'family', 'baby', 'accessible', 'free', 'open'][i], active: false })),
-    results: [], selected: null, selectedId: '', mobileView: 'list', showReport: false,
+    results: [], selected: null, selectedId: '', mobileView: 'list', showReport: false, showSupport: false,
     reportName: '', reportHint: '', reportType: 0, types,
     statuses: ['待核实', '营业中', '临时关闭'], reportStatus: 0, reportError: ''
   },
@@ -51,6 +51,8 @@ Page({
   switchView(e) { this.setData({ mobileView: e.currentTarget.dataset.view }); },
   openReport() { this.setData({ showReport: true, reportError: '' }); },
   closeReport() { this.setData({ showReport: false }); },
+  openSupport() { this.setData({ showSupport: true }); },
+  closeSupport() { this.setData({ showSupport: false }); },
   stopTap() {},
   onReportName(e) { this.setData({ reportName: e.detail.value }); },
   onReportHint(e) { this.setData({ reportHint: e.detail.value }); },

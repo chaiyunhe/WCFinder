@@ -6,7 +6,7 @@
 
 1. 安装并登录微信开发者工具：https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html
 2. 选择“导入项目”，目录选择本文件所在的 `miniprogram` 文件夹（不是 WCFinder 根目录）。
-3. 配置目前使用 `touristappid`，供工具支持的游客/测试模式使用。若工具要求真实 AppID，填写你自己注册的小程序 AppID。
+3. 项目已配置 AppID `wx7f158580754f0989`，使用具有该小程序开发权限的微信账号登录工具。
 4. 后端服务选择“不使用云服务”，点击编译。无需 npm 安装或构建。
 5. 真机预览、上传和发布需使用你的小程序 AppID，并由对应开发者账号操作。
 

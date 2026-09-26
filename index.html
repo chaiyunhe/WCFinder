@@ -14,6 +14,7 @@
             <p class="eyebrow">Outing Restroom Finder</p>
             <h1>厕位导航</h1>
           </div>
+          <button class="secondary-button support-entry" id="supportOpenBtn" type="button">♡ 支持我们</button>
           <button class="icon-button" id="locateBtn" aria-label="定位当前位置" title="定位当前位置">
             <span aria-hidden="true">⌖</span>
           </button>
@@ -165,6 +166,16 @@
           </label>
         </div>
         <button class="primary-button full" id="submitReportBtn" value="default">提交反馈</button>
+      </form>
+    </dialog>
+
+    <dialog id="supportDialog" aria-labelledby="supportTitle">
+      <form method="dialog" class="report-form">
+        <div class="dialog-head"><h2 id="supportTitle">支持 WCFinder</h2><button class="icon-button" aria-label="关闭支持弹窗">×</button></div>
+        <p class="support-copy">如果 WCFinder 帮你找到了方便的地方，欢迎自愿支持项目，帮助承担服务器、地图查询和信息维护的费用。</p>
+        <p class="support-copy">是否支持，不影响你使用找厕所功能。</p>
+        <div class="support-pending" role="status">收款方式尚未开通，感谢你的心意。</div>
+        <button class="primary-button" value="close">继续找厕所</button>
       </form>
     </dialog>
 

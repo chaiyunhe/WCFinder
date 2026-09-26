@@ -743,3 +743,8 @@ dialog::backdrop {
   .map-panel .map-canvas { flex: none; min-height: 360px; height: 50vh; }
   .map-panel .selected-card { position: static; max-height: none; }
 }
+
+.topbar { gap: 10px; flex-wrap: wrap; }
+.support-entry { margin-left: auto; }
+.support-copy { margin: 0; color: var(--muted); line-height: 1.7; }
+.support-pending { padding: 16px; border-radius: 8px; background: #f2ecfa; color: #7546c8; line-height: 1.6; }

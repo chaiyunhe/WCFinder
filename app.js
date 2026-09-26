@@ -294,3 +294,6 @@ document.querySelector("#submitReportBtn").addEventListener("click", (event) => 
 });
 
 render();
+
+const supportDialog = document.querySelector("#supportDialog");
+document.querySelector("#supportOpenBtn").addEventListener("click", () => supportDialog.showModal());

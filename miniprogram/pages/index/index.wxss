@@ -46,3 +46,5 @@
  .mobile-tabs button { width:50%; }
  .mobile-hidden { display:none; }
 }
+
+.support-pending { padding:24rpx; margin-top:24rpx; border-radius:14rpx; background:#f2ecfa; color:#7546c8; line-height:1.7; }
