@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WCFinder · 厕位导航原型</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="map-panel" aria-label="卫生间地图">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Outing Restroom Finder</p>
+            <h1>厕位导航</h1>
+          </div>
+          <button class="icon-button" id="locateBtn" aria-label="定位当前位置" title="定位当前位置">
+            <span aria-hidden="true">⌖</span>
+          </button>
+        </header>
+
+        <div class="search-row">
+          <label class="search-box">
+            <span aria-hidden="true">⌕</span>
+            <input id="searchInput" type="search" placeholder="搜索商场、景区、地铁站或标志物" />
+          </label>
+        </div>
+
+        <div class="filter-bar" aria-label="筛选">
+          <button class="filter active" data-filter="all">全部</button>
+          <button class="filter" data-filter="male">男厕</button>
+          <button class="filter" data-filter="female">女厕</button>
+          <button class="filter" data-filter="family">第三卫生间</button>
+          <button class="filter" data-filter="baby">母婴室</button>
+          <button class="filter" data-filter="accessible">无障碍</button>
+          <button class="filter" data-filter="free">免费</button>
+          <button class="filter" data-filter="open">营业中</button>
+        </div>
+        <p class="filter-hint">可多选组合条件 · 演示原型：地图、点位和路线均为模拟，反馈刷新后不保存</p>
+
+        <div class="map-canvas">
+          <img class="map-art" src="./assets/map-district.svg" alt="商圈地图底图" />
+          <svg class="route-layer" viewBox="0 0 1200 840" aria-hidden="true">
+            <path id="routePath" d="" />
+          </svg>
+          <button class="user-pin" aria-label="我的位置" style="left: 18%; top: 62%"></button>
+          <div id="pinsLayer"></div>
+          <div class="map-legend">
+            <span><i class="legend-dot selected"></i>推荐</span>
+            <span><i class="legend-dot"></i>可用</span>
+            <span><i class="legend-dot muted"></i>待核实</span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="detail-panel" aria-label="卫生间详情">
+        <div class="metrics">
+          <div>
+            <strong id="nearbyCount">0</strong>
+            <span>附近点位</span>
+          </div>
+          <div>
+            <strong id="bestEta">--</strong>
+            <span>最快步行</span>
+          </div>
+          <div>
+            <strong>4.7</strong>
+            <span>平均评分</span>
+          </div>
+        </div>
+
+        <article class="selected-card" id="selectedCard"></article>
+
+        <div class="tabs" role="tablist" aria-label="信息视图">
+          <button class="tab active" data-tab="list" role="tab">附近</button>
+          <button class="tab" data-tab="reviews" role="tab">评价</button>
+          <button class="tab" data-tab="data" role="tab">数据</button>
+        </div>
+
+        <section class="tab-panel active" id="listPanel"></section>
+        <section class="tab-panel" id="reviewsPanel"></section>
+        <section class="tab-panel" id="dataPanel">
+          <div class="data-grid">
+            <div>
+              <span>地图来源</span>
+              <strong>模拟数据（尚未接入地图服务）</strong>
+              <p>计划上海首版接入高德，后续适配百度和海外 Google Maps。</p>
+            </div>
+            <div>
+              <span>人工反馈</span>
+              <strong>新增、纠错、关闭</strong>
+              <p>用户可补充厕所类型、具体楼层、靠近店铺、标志牌、照片和排队情况。</p>
+            </div>
+            <div>
+              <span>类型支持</span>
+              <strong>男厕 / 女厕 / 第三卫生间</strong>
+              <p>支持男女厕不在同一区域时分别建点，并单独标注无障碍、亲子或通用卫生间。</p>
+            </div>
+            <div>
+              <span>可信度</span>
+              <strong>多源交叉校验</strong>
+              <p>根据最近确认时间、评价数量、平台来源和现场反馈动态排序。</p>
+            </div>
+          </div>
+        </section>
+
+        <div class="feedback-dock">
+          <p>发现位置、楼层或状态不准确？</p>
+          <button class="secondary-button" id="reportOpenBtn">新增反馈</button>
+        </div>
+      </aside>
+    </main>
+
+    <dialog id="reportDialog">
+      <form method="dialog" class="report-form">
+        <div class="dialog-head">
+          <h2>新增或变更点位</h2>
+          <button class="icon-button" value="cancel" aria-label="关闭" title="关闭">×</button>
+        </div>
+        <label>
+          位置名称
+          <input id="reportName" placeholder="例如：西门服务台旁卫生间" />
+        </label>
+        <label>
+          楼层与路线提示
+          <textarea id="reportHint" placeholder="例如：B1 层，靠近星巴克，沿蓝色导视牌右转"></textarea>
+        </label>
+        <div class="form-grid">
+          <label>
+            类型
+            <select id="reportType">
+              <option value="all-gender">男女同区</option>
+              <option value="male">男厕</option>
+              <option value="female">女厕</option>
+              <option value="family">第三卫生间</option>
+            </select>
+          </label>
+          <label>
+            状态
+            <select id="reportStatus">
+              <option>正常开放</option>
+              <option>临时关闭</option>
+              <option>需要清洁</option>
+              <option>信息有误</option>
+            </select>
+          </label>
+          <label>
+            评分
+            <input id="reportRating" type="number" min="1" max="5" step="0.5" value="4.5" />
+          </label>
+        </div>
+        <button class="primary-button full" id="submitReportBtn" value="default">提交反馈</button>
+      </form>
+    </dialog>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
