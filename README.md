@@ -17,7 +17,8 @@ python3 -m http.server 8080 --bind 127.0.0.1
 
 - `index.html`：页面、筛选入口和反馈表单。
 - `styles.css`：桌面和移动端布局。
-- `app.js`：模拟点位、组合筛选、详情、评价和临时反馈。
+- `app.js`：页面交互、筛选状态和结果展示。
+- `restroom-service.js`：独立演示查询服务，包含模拟点位、地铁数据及内存反馈。
 - `assets/map-district.svg`：示意地图。
 
 ## 已有功能与限制
@@ -43,3 +44,26 @@ python3 -m http.server 8080 --bind 127.0.0.1
 `/Users/yunhechai/Documents/Codex/2026-06-20/app-googlemap-app/outputs/toilet-finder-app`
 
 迁入时修复筛选无结果导致读取空对象的错误，并补充演示数据提示。
+
+## 地铁搜索
+
+支持线路与站点联动选择、站厅/站台/站外筛选，并与现有类型设施条件叠加。关键词可搜索线路、站名及具体站台；用空格分隔多个关键词。当前仅包含两条虚构示例线路、三个示例站点，不代表上海实际线网或厕所位置。清除地铁条件不影响关键词及设施筛选。
+
+## 地图查询边界
+
+页面通过 `WCFinder.createDemoService()` 获取查询服务，不再直接操作点位数组。
+`search({ query, filters, line, station, area })` 返回独立数据副本；`getStations()` 提供线路站点选项；`addFeedback(report)` 暂存现场反馈。
+每个结果带有 `source.provider` 和 `source.id`，区分演示数据与用户贡献。
+当前接口为同步本地查询，没有网络请求、API 密钥或付费服务；x/y 为示意图百分比，不是经纬度。
+
+下一阶段需要新增服务端高德适配器、真实坐标模型、异步加载/错误/超时处理和请求限流。
+高德 Web 服务密钥只放服务端环境变量，不提交到仓库。地图展示与地点查询分别接入。
+百度补充查询、跨平台合并与缓存策略须在核对授权后实现；当前没有自动合并不同来源点位。
+用户入口、楼层和纠错信息将在后端单独存储，不能覆盖来源平台数据。
+
+## 微信小程序
+
+原生小程序位于 `miniprogram/`，用微信开发者工具导入该文件夹即可开始调试。
+支持搜索、地铁联动、组合筛选、结果与示意地图联动、详情和临时反馈。
+详细导入步骤及真实服务接入限制见 `miniprogram/README.md`。
+修改查询服务后运行 `node scripts/sync-miniprogram.cjs`，并运行 `node tests/miniprogram.cjs` 验证。

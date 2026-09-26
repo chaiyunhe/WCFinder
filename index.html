@@ -8,7 +8,7 @@
   </head>
   <body>
     <main class="app-shell">
-      <section class="map-panel" aria-label="卫生间地图">
+      <section class="search-panel" aria-label="搜索和筛选">
         <header class="topbar">
           <div>
             <p class="eyebrow">Outing Restroom Finder</p>
@@ -22,9 +22,20 @@
         <div class="search-row">
           <label class="search-box">
             <span aria-hidden="true">⌕</span>
-            <input id="searchInput" type="search" placeholder="搜索商场、景区、地铁站或标志物" />
+            <input id="searchInput" type="search" placeholder="搜索线路、站点、站台、商场或标志物" />
           </label>
         </div>
+
+        <section class="metro-search" aria-label="按地铁查找">
+          <div class="metro-heading"><strong>按地铁查找</strong><button id="clearMetro" class="secondary-button" type="button">清除地铁条件</button></div>
+          <div class="metro-fields">
+            <label>地铁线路<select id="metroLine"><option value="">全部线路</option></select></label>
+            <label>地铁站点<select id="metroStation"><option value="">全部站点</option></select></label>
+            <label>站内位置<select id="metroArea"><option value="">全部位置</option><option value="站厅">站厅</option><option value="站台">站台</option><option value="站外">站外周边</option></select></label>
+          </div>
+          <p class="metro-note">示例线路和站点，仅用于体验搜索；尚未接入上海真实地铁数据。</p>
+          <p id="metroSummary" role="status" aria-live="polite"></p>
+        </section>
 
         <div class="filter-bar" aria-label="筛选">
           <button class="filter active" data-filter="all">全部</button>
@@ -38,22 +49,11 @@
         </div>
         <p class="filter-hint">可多选组合条件 · 演示原型：地图、点位和路线均为模拟，反馈刷新后不保存</p>
 
-        <div class="map-canvas">
-          <img class="map-art" src="./assets/map-district.svg" alt="商圈地图底图" />
-          <svg class="route-layer" viewBox="0 0 1200 840" aria-hidden="true">
-            <path id="routePath" d="" />
-          </svg>
-          <button class="user-pin" aria-label="我的位置" style="left: 18%; top: 62%"></button>
-          <div id="pinsLayer"></div>
-          <div class="map-legend">
-            <span><i class="legend-dot selected"></i>推荐</span>
-            <span><i class="legend-dot"></i>可用</span>
-            <span><i class="legend-dot muted"></i>待核实</span>
-          </div>
-        </div>
+
       </section>
 
-      <aside class="detail-panel" aria-label="卫生间详情">
+      <section class="detail-panel" aria-label="搜索结果">
+        <h2 class="panel-title">搜索结果</h2>
         <div class="metrics">
           <div>
             <strong id="nearbyCount">0</strong>
@@ -69,10 +69,8 @@
           </div>
         </div>
 
-        <article class="selected-card" id="selectedCard"></article>
-
         <div class="tabs" role="tablist" aria-label="信息视图">
-          <button class="tab active" data-tab="list" role="tab">附近</button>
+          <button class="tab active" data-tab="list" role="tab">厕所列表</button>
           <button class="tab" data-tab="reviews" role="tab">评价</button>
           <button class="tab" data-tab="data" role="tab">数据</button>
         </div>
@@ -108,7 +106,24 @@
           <p>发现位置、楼层或状态不准确？</p>
           <button class="secondary-button" id="reportOpenBtn">新增反馈</button>
         </div>
-      </aside>
+      </section>
+      <section class="map-panel" aria-label="卫生间地图与选中详情">
+        <div class="map-heading"><h2 class="panel-title">位置地图</h2><span>点击点位或列表查看详情</span></div>
+        <div class="map-canvas">
+          <img class="map-art" src="./assets/map-district.svg" alt="商圈地图底图" />
+          <svg class="route-layer" viewBox="0 0 1200 840" aria-hidden="true">
+            <path id="routePath" d="" />
+          </svg>
+          <button class="user-pin" aria-label="我的位置" style="left: 18%; top: 62%"></button>
+          <div id="pinsLayer"></div>
+          <div class="map-legend">
+            <span><i class="legend-dot selected"></i>推荐</span>
+            <span><i class="legend-dot"></i>可用</span>
+            <span><i class="legend-dot muted"></i>待核实</span>
+          </div>
+        </div>
+        <article class="selected-card" id="selectedCard" aria-label="选中厕所详情"></article>
+      </section>
     </main>
 
     <dialog id="reportDialog">
@@ -153,6 +168,7 @@
       </form>
     </dialog>
 
+    <script src="./restroom-service.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

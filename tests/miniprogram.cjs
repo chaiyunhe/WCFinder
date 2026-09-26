@@ -1,0 +1,43 @@
+const assert = require('node:assert/strict');
+let definition;
+global.Page = value => { definition = value; };
+global.wx = { showToast() {} };
+require('../miniprogram/pages/index/index.js');
+const page = Object.assign({}, definition, {
+  data: JSON.parse(JSON.stringify(definition.data)),
+  setData(value) { Object.assign(this.data, value); }
+});
+const change = value => ({ detail: { value } });
+const tap = id => ({ currentTarget: { dataset: { id } } });
+page.onLoad();
+assert.equal(page.data.results.length, 8);
+page.onLine(change('1'));
+assert.equal(page.data.results.length, 3);
+page.onStation(change('1'));
+page.onArea(change('2'));
+assert.equal(page.data.results.length, 1);
+page.onFilter(tap('male'));
+assert.equal(page.data.results.length, 0);
+assert.equal(page.data.selected, null);
+page.clearAll();
+page.onStation(change('2'));
+page.onLine(change('2'));
+assert.equal(page.data.stationIndex, 0);
+assert(!page.data.stations.some(s => s.id === 'park'));
+page.clearAll();
+page.onSearch(change('中心广场 1号站台'));
+assert.equal(page.data.results.length, 1);
+page.onSelect(tap(page.data.results[0].id));
+assert.equal(page.data.mobileView, 'map');
+page.openReport();page.submitReport();
+assert(page.data.reportError);
+page.onReportName(change('<script>现场名称</script>'));
+page.onReportHint(change('B1 电梯旁'));
+page.submitReport();
+assert.equal(page.data.results.length, 9);
+assert.equal(page.data.selected.source.provider, 'user');
+assert.equal(page.data.selected.name, '<script>现场名称</script>');
+assert.equal(page.data.selected.rating, null);
+assert(!page.data.selected.tags.includes('free'));
+assert.equal(page.data.showReport, false);
+console.log('PASS: metro cascade, combined filters, empty state, keyword search, selection and feedback validation.');

@@ -1,0 +1,4 @@
+page { background: #f7faf8; color: #18302b; font-size: 28rpx; }
+view, scroll-view, input, textarea, button { box-sizing: border-box; }
+button { font-size: 26rpx; margin: 0; }
+button::after { border: 0; }

@@ -1,0 +1,9 @@
+{
+  "appid": "touristappid",
+  "projectname": "WCFinder",
+  "description": "上海找厕所应用交互原型（演示数据）",
+  "compileType": "miniprogram",
+  "miniprogramRoot": "./",
+  "setting": { "es6": true, "enhance": true, "minified": true, "urlCheck": true },
+  "packOptions": { "ignore": [{ "type": "file", "value": "README.md" }] }
+}

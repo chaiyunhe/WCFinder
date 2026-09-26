@@ -1,0 +1,54 @@
+<view class="shell">
+  <view class="left">
+    <scroll-view scroll-y class="search">
+      <view class="heading">找个方便的地方</view>
+      <view class="note">演示模式 · 虚构线路与点位，不用于实际导航</view>
+      <input class="input" value="{{query}}" bindinput="onSearch" placeholder="搜索线路、站点、站台或标志物" confirm-type="search" maxlength="100" />
+      <view class="pickers">
+        <picker range="{{lines}}" value="{{lineIndex}}" bindchange="onLine"><view class="pick">线路 · {{lines[lineIndex]}} ▾</view></picker>
+        <picker range="{{stations}}" range-key="name" value="{{stationIndex}}" bindchange="onStation"><view class="pick">站点 · {{stations[stationIndex].name}} ▾</view></picker>
+        <picker range="{{areas}}" value="{{areaIndex}}" bindchange="onArea"><view class="pick">位置 · {{areas[areaIndex]}} ▾</view></picker>
+      </view>
+      <view class="filters"><button wx:for="{{filters}}" wx:key="id" class="chip {{item.active ? 'active' : ''}}" data-id="{{item.id}}" bindtap="onFilter">{{item.label}}</button></view>
+      <view class="row"><text class="note">可多选组合筛选</text><button class="text-button" bindtap="clearAll">清除所有条件</button></view>
+    </scroll-view>
+    <view class="mobile-tabs"><button class="{{mobileView === 'list' ? 'active' : ''}}" data-view="list" bindtap="switchView">结果 {{results.length}}</button><button class="{{mobileView === 'map' ? 'active' : ''}}" data-view="map" bindtap="switchView">地图与详情</button></view>
+    <scroll-view scroll-y class="results {{mobileView !== 'list' ? 'mobile-hidden' : ''}}">
+      <view class="row"><text class="subtitle">搜索结果 · {{results.length}}</text><button class="text-button" bindtap="openReport">新增反馈</button></view>
+      <view wx:if="{{!results.length}}" class="empty">没有符合条件的点位，请减少筛选条件。</view>
+      <view wx:for="{{results}}" wx:key="id" class="card {{selectedId === item.id ? 'selected' : ''}}" data-id="{{item.id}}" bindtap="onSelect" role="button" aria-label="{{item.name}}">
+        <view class="name">{{item.name}}</view><view class="meta">{{item.typeLabel}} · {{item.floor}} · {{item.distance}}</view>
+        <view class="meta" wx:if="{{item.metroLabel}}">{{item.metroLabel}}</view>
+        <view class="row"><text>{{item.status}}</text><text wx:if="{{item.rating}}">★ {{item.rating}}</text><text wx:else>暂无评分</text></view>
+      </view>
+    </scroll-view>
+  </view>
+  <scroll-view scroll-y class="right {{mobileView !== 'map' ? 'mobile-hidden' : ''}}">
+    <view class="row"><text class="subtitle">位置示意图</text><text class="note">非真实地图</text></view>
+    <view class="demo-map">
+      <view class="park">公园</view><view class="road horizontal"></view><view class="road vertical"></view><view class="river"></view>
+      <button wx:for="{{results}}" wx:key="id" class="pin {{selectedId === item.id ? 'chosen' : ''}}" style="left:{{item.x}}%;top:{{item.y}}%;" data-id="{{item.id}}" bindtap="onSelect" aria-label="{{item.name}}">{{item.typeLabel}}</button>
+    </view>
+    <view wx:if="{{selected}}" class="card detail">
+      <view class="name">{{selected.name}}</view><view class="meta">{{selected.typeLabel}} · {{selected.status}}</view>
+      <view wx:if="{{selected.metroLabel}}" class="detail-line">地铁：{{selected.metroLabel}}</view>
+      <view class="detail-line">楼层：{{selected.floor}}</view><view class="detail-line">靠近：{{selected.near}}</view>
+      <view class="detail-line">入口指引：{{selected.sign}}</view><view class="detail-line">类型说明：{{selected.typeNote}}</view>
+      <view class="labels"><text wx:for="{{selected.labels}}" wx:key="*this">{{item}}</text></view>
+      <view class="note">{{selected.quote}}</view><view class="note">演示数据不支持真实路线导航。</view>
+      <button class="primary" bindtap="openReport">补充现场信息</button>
+    </view>
+    <view wx:else class="empty">暂无选中点位</view>
+  </scroll-view>
+</view>
+<view wx:if="{{showReport}}" class="mask" bindtap="closeReport">
+  <view class="dialog" catchtap="stopTap">
+    <view class="row"><text class="subtitle">新增现场反馈</text><button class="text-button" bindtap="closeReport">关闭</button></view>
+    <view class="note">仅在本次运行中保留，重启后清空。</view>
+    <input class="input" placeholder="位置名称" value="{{reportName}}" bindinput="onReportName" maxlength="80" />
+    <textarea class="input textarea" placeholder="楼层、入口和标志物" value="{{reportHint}}" bindinput="onReportHint" maxlength="300" />
+    <picker range="{{types}}" range-key="label" value="{{reportType}}" bindchange="onReportType"><view class="pick">类型：{{types[reportType].label}} ▾</view></picker>
+    <picker range="{{statuses}}" value="{{reportStatus}}" bindchange="onReportStatus"><view class="pick">状态：{{statuses[reportStatus]}} ▾</view></picker>
+    <view class="error" wx:if="{{reportError}}">{{reportError}}</view><button class="primary" bindtap="submitReport">加入本次演示</button>
+  </view>
+</view>
