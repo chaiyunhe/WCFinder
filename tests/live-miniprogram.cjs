@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict');
+const vm=require('node:vm');
+const fs=require('node:fs');
+let page;const requests=[];
+vm.runInNewContext(fs.readFileSync('miniprogram/pages/index/index.js','utf8'),{require:()=>({baseUrl:'https://test.example'}),Page:p=>page=p,wx:{request:o=>{requests.push(o);return {abort(){}};}}});
+page.setData=function(p){Object.assign(this.data,p);};page.onLoad();
+page.load({q:'甲'});page.load({q:'乙'});
+requests[0].success({statusCode:200,data:{results:[{id:'old',name:'旧地点',latitude:31,longitude:121}]}});
+assert.equal(page.data.results.length,0,'过期查询不能覆盖最新结果');
+requests[1].success({statusCode:200,data:{results:[{id:'new',name:'新地点',latitude:31,longitude:121}]}});requests[1].complete();
+assert.equal(page.data.selected.id,'new');assert.equal(page.data.loading,false);
+page.load({q:'失败'});requests[2].fail();requests[2].complete();assert.equal(page.data.results.length,0);assert.ok(page.data.error);
+console.log('PASS: live search race, selection, failure and loading states');

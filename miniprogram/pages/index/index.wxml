@@ -1,64 +1,25 @@
 <view class="shell">
-  <view class="left">
-    <scroll-view scroll-y class="search">
-      <view class="row"><view class="heading">找个方便的地方</view><button class="text-button" bindtap="openSupport">♡ 支持我们</button></view>
-      <view class="note">演示模式 · 虚构线路与点位，不用于实际导航</view>
-      <input class="input" value="{{query}}" bindinput="onSearch" placeholder="搜索线路、站点、站台或标志物" confirm-type="search" maxlength="100" />
-      <view class="pickers">
-        <picker range="{{lines}}" value="{{lineIndex}}" bindchange="onLine"><view class="pick">线路 · {{lines[lineIndex]}} ▾</view></picker>
-        <picker range="{{stations}}" range-key="name" value="{{stationIndex}}" bindchange="onStation"><view class="pick">站点 · {{stations[stationIndex].name}} ▾</view></picker>
-        <picker range="{{areas}}" value="{{areaIndex}}" bindchange="onArea"><view class="pick">位置 · {{areas[areaIndex]}} ▾</view></picker>
-      </view>
-      <view class="filters"><button wx:for="{{filters}}" wx:key="id" class="chip {{item.active ? 'active' : ''}}" data-id="{{item.id}}" bindtap="onFilter">{{item.label}}</button></view>
-      <view class="row"><text class="note">可多选组合筛选</text><button class="text-button" bindtap="clearAll">清除所有条件</button></view>
-    </scroll-view>
-    <view class="mobile-tabs"><button class="{{mobileView === 'list' ? 'active' : ''}}" data-view="list" bindtap="switchView">结果 {{results.length}}</button><button class="{{mobileView === 'map' ? 'active' : ''}}" data-view="map" bindtap="switchView">地图与详情</button></view>
-    <scroll-view scroll-y class="results {{mobileView !== 'list' ? 'mobile-hidden' : ''}}">
-      <view class="row"><text class="subtitle">搜索结果 · {{results.length}}</text><button class="text-button" bindtap="openReport">新增反馈</button></view>
-      <view wx:if="{{!results.length}}" class="empty">没有符合条件的点位，请减少筛选条件。</view>
-      <view wx:for="{{results}}" wx:key="id" class="card {{selectedId === item.id ? 'selected' : ''}}" data-id="{{item.id}}" bindtap="onSelect" role="button" aria-label="{{item.name}}">
-        <view class="name">{{item.name}}</view><view class="meta">{{item.typeLabel}} · {{item.floor}} · {{item.distance}}</view>
-        <view class="meta" wx:if="{{item.metroLabel}}">{{item.metroLabel}}</view>
-        <view class="row"><text>{{item.status}}</text><text wx:if="{{item.rating}}">★ {{item.rating}}</text><text wx:else>暂无评分</text></view>
-      </view>
-    </scroll-view>
+ <view class="left">
+  <view class="search">
+   <view class="heading">找个方便的地方</view>
+   <view class="note">上海 · 真实地点查询</view>
+   <input class="input" value="{{query}}" bindinput="onSearch" bindconfirm="search" confirm-type="search" maxlength="80" placeholder="输入地点、地铁站或厕所名称" />
+   <view class="actions"><button class="primary" bindtap="search" loading="{{loading}}" disabled="{{loading}}">搜索厕所</button><button bindtap="nearby" disabled="{{loading}}">查找附近</button></view>
+   <view class="note">地点搜索无需定位；地铁站附近结果不代表站内或站台厕所。</view>
   </view>
-  <scroll-view scroll-y class="right {{mobileView !== 'map' ? 'mobile-hidden' : ''}}">
-    <view class="row"><text class="subtitle">位置示意图</text><text class="note">非真实地图</text></view>
-    <view class="demo-map">
-      <view class="park">公园</view><view class="road horizontal"></view><view class="road vertical"></view><view class="river"></view>
-      <button wx:for="{{results}}" wx:key="id" class="pin {{selectedId === item.id ? 'chosen' : ''}}" style="left:{{item.x}}%;top:{{item.y}}%;" data-id="{{item.id}}" bindtap="onSelect" aria-label="{{item.name}}">{{item.typeLabel}}</button>
-    </view>
-    <view wx:if="{{selected}}" class="card detail">
-      <view class="name">{{selected.name}}</view><view class="meta">{{selected.typeLabel}} · {{selected.status}}</view>
-      <view wx:if="{{selected.metroLabel}}" class="detail-line">地铁：{{selected.metroLabel}}</view>
-      <view class="detail-line">楼层：{{selected.floor}}</view><view class="detail-line">靠近：{{selected.near}}</view>
-      <view class="detail-line">入口指引：{{selected.sign}}</view><view class="detail-line">类型说明：{{selected.typeNote}}</view>
-      <view class="labels"><text wx:for="{{selected.labels}}" wx:key="*this">{{item}}</text></view>
-      <view class="note">{{selected.quote}}</view><view class="note">演示数据不支持真实路线导航。</view>
-      <button class="primary" bindtap="openReport">补充现场信息</button>
-    </view>
-    <view wx:else class="empty">暂无选中点位</view>
+  <view class="mobile-tabs"><button data-view="list" bindtap="switchView">列表 {{results.length}}</button><button data-view="map" bindtap="switchView">地图</button></view>
+  <scroll-view scroll-y class="results {{mobileView !== 'list' ? 'mobile-hidden' : ''}}">
+   <view wx:if="{{loading}}" class="empty">正在查询真实地点…</view>
+   <view wx:elif="{{error}}" class="empty">{{error}}</view>
+   <view wx:elif="{{!searched}}" class="empty">搜索上海的地点，或查找附近 3 公里内的厕所。</view>
+   <view wx:elif="{{!results.length}}" class="empty">未找到相关厕所，请换一个地点搜索。</view>
+   <view wx:for="{{results}}" wx:key="id" class="card" data-index="{{index}}" bindtap="onSelect"><view class="name">{{item.name}}</view><view class="meta">{{item.address}}</view><view class="note">来源：高德地图 · 查看位置与导航</view></view>
+   <view wx:if="{{results.length}}" class="note">最多展示 20 个结果。开放时间、无障碍设施及收费情况请现场确认。</view>
   </scroll-view>
-</view>
-<view wx:if="{{showReport}}" class="mask" bindtap="closeReport">
-  <view class="dialog" catchtap="stopTap">
-    <view class="row"><text class="subtitle">新增现场反馈</text><button class="text-button" bindtap="closeReport">关闭</button></view>
-    <view class="note">仅在本次运行中保留，重启后清空。</view>
-    <input class="input" placeholder="位置名称" value="{{reportName}}" bindinput="onReportName" maxlength="80" />
-    <textarea class="input textarea" placeholder="楼层、入口和标志物" value="{{reportHint}}" bindinput="onReportHint" maxlength="300" />
-    <picker range="{{types}}" range-key="label" value="{{reportType}}" bindchange="onReportType"><view class="pick">类型：{{types[reportType].label}} ▾</view></picker>
-    <picker range="{{statuses}}" value="{{reportStatus}}" bindchange="onReportStatus"><view class="pick">状态：{{statuses[reportStatus]}} ▾</view></picker>
-    <view class="error" wx:if="{{reportError}}">{{reportError}}</view><button class="primary" bindtap="submitReport">加入本次演示</button>
-  </view>
-</view>
-
-<view wx:if="{{showSupport}}" class="mask" bindtap="closeSupport">
-  <view class="dialog" catchtap="stopTap">
-    <view class="row"><text class="subtitle">支持 WCFinder</text><button class="text-button" bindtap="closeSupport">关闭</button></view>
-    <view class="detail-line">如果 WCFinder 帮你找到了方便的地方，欢迎自愿支持项目，帮助承担服务器、地图查询和信息维护的费用。</view>
-    <view class="note">是否支持，不影响你使用找厕所功能。</view>
-    <view class="support-pending">收款方式尚未开通，感谢你的心意。</view>
-    <button class="primary" bindtap="closeSupport">继续找厕所</button>
-  </view>
+ </view>
+ <view class="right {{mobileView !== 'map' ? 'mobile-hidden' : ''}}">
+  <map class="live-map" latitude="{{latitude}}" longitude="{{longitude}}" markers="{{markers}}" scale="15" bindmarkertap="onMarker" />
+  <view wx:if="{{selected}}" class="card"><view class="name">{{selected.name}}</view><view class="meta">{{selected.address}}</view><view class="note">地点信息：高德地图。地图底图由微信提供，具体入口请现场确认。</view><button class="primary" bindtap="navigate">打开地图导航</button></view>
+  <view wx:else class="empty">搜索后可在地图上查看厕所位置。</view>
+ </view>
 </view>

@@ -1,75 +1,44 @@
-const { createDemoService } = require('../../services/restroom-service');
-const types = [
-  { id: 'male', label: '男厕' }, { id: 'female', label: '女厕' },
-  { id: 'family', label: '第三卫生间' }, { id: 'all-gender', label: '男女同区' }
-];
+const { baseUrl } = require('../../services/api-config');
 Page({
-  data: {
-    query: '', lines: ['全部线路'], lineIndex: 0,
-    stations: [{ id: '', name: '全部站点' }], stationIndex: 0,
-    areas: ['全部位置', '站厅', '站台', '站外'], areaIndex: 0,
-    filters: ['男厕', '女厕', '第三卫生间', '母婴室', '无障碍', '免费', '营业中'].map((label, i) => ({ label, id: ['male', 'female', 'family', 'baby', 'accessible', 'free', 'open'][i], active: false })),
-    results: [], selected: null, selectedId: '', mobileView: 'list', showReport: false, showSupport: false,
-    reportName: '', reportHint: '', reportType: 0, types,
-    statuses: ['待核实', '营业中', '临时关闭'], reportStatus: 0, reportError: ''
+  data: { query:'', results:[], selected:null, markers:[], loading:false, error:'', searched:false, mobileView:'list', latitude:31.2304, longitude:121.4737 },
+  onLoad() { this.requestId = 0; },
+  onUnload() { this.requestId++; if (this.task) this.task.abort(); },
+  onSearch(e) { this.setData({query:e.detail.value}); },
+  search() {
+    const query = this.data.query.trim();
+    if (!query) { this.setData({error:'请输入上海的地点、地铁站或厕所名称'}); return; }
+    this.load({q:query});
   },
-  onLoad() {
-    this.service = createDemoService();
-    this.allStations = this.service.getStations();
-    const lines = ['全部线路'];
-    this.allStations.forEach(station => station.lines.forEach(line => { if (!lines.includes(line)) lines.push(line); }));
-    this.setData({ lines, stations: [{ id: '', name: '全部站点' }].concat(this.allStations) });
-    this.refresh();
+  nearby() {
+    wx.showModal({title:'查找附近厕所', content:'将获取你当前的位置，并通过查询服务发送给高德地图，用于搜索附近厕所。也可以取消并输入地点搜索。', success: answer => {
+      if (!answer.confirm) return;
+      wx.getLocation({type:'gcj02', success:pos => {
+        this.setData({query:'', latitude:pos.latitude,longitude:pos.longitude});
+        this.load({latitude:pos.latitude,longitude:pos.longitude});
+      },fail:() => this.setData({error:'未能获取位置，请输入上海的地点名称搜索'})});
+    }});
   },
-  refresh() {
-    const d = this.data;
-    const results = this.service.search({ query: d.query, filters: d.filters.filter(f => f.active).map(f => f.id),
-      line: d.lineIndex ? d.lines[d.lineIndex] : '', station: d.stations[d.stationIndex].id,
-      area: d.areaIndex ? d.areas[d.areaIndex] : ''
-    }).map(item => Object.assign(item, { metroLabel: this.service.describeMetro(item) }));
-    const selected = results.find(item => item.id === d.selectedId) || results[0] || null;
-    this.setData({ results, selected, selectedId: selected ? selected.id : '' });
+  load(params) {
+    const id = ++this.requestId;
+    if (this.task) this.task.abort();
+    this.setData({loading:false,error:'',results:[],markers:[],selected:null,searched:true});
+    if (!/^https:\/\//.test(baseUrl)) { this.setData({error:'线上查询服务尚未开通，请稍后再试'}); return; }
+    this.setData({loading:true});
+    this.task = wx.request({url:baseUrl.replace(/\/$/,'')+'/api/restrooms',data:params,timeout:10000,
+      success:res => {
+        if(id !== this.requestId) return;
+        if(res.statusCode !== 200 || !res.data || !Array.isArray(res.data.results)) { this.setData({error:res.data && res.data.error || '查询失败，请重试'}); return; }
+        const results = res.data.results.filter(p => p && typeof p.name === 'string' && Number.isFinite(p.latitude) && Number.isFinite(p.longitude));
+        const markers = results.map((p,i)=>({id:i,latitude:p.latitude,longitude:p.longitude,title:p.name,callout:{content:p.name,display:'BYCLICK',padding:8,borderRadius:8}}));
+        const first = results[0];
+        this.setData({results,markers,selected:first || null,...(first ? {latitude:first.latitude,longitude:first.longitude}: {})});
+      },fail:() => { if(id === this.requestId) this.setData({error:'网络连接失败，请重试'}); },
+      complete:() => { if(id === this.requestId) this.setData({loading:false}); }
+    });
   },
-  onSearch(e) { this.setData({ query: e.detail.value }); this.refresh(); },
-  onLine(e) {
-    const lineIndex = Number(e.detail.value);
-    const stations = [{ id: '', name: '全部站点' }].concat(this.allStations.filter(s => !lineIndex || s.lines.includes(this.data.lines[lineIndex])));
-    this.setData({ lineIndex, stations, stationIndex: 0 }); this.refresh();
-  },
-  onStation(e) { this.setData({ stationIndex: Number(e.detail.value) }); this.refresh(); },
-  onArea(e) { this.setData({ areaIndex: Number(e.detail.value) }); this.refresh(); },
-  onFilter(e) {
-    const id = e.currentTarget.dataset.id;
-    this.setData({ filters: this.data.filters.map(f => Object.assign({}, f, { active: f.id === id ? !f.active : f.active })) }); this.refresh();
-  },
-  clearAll() {
-    this.setData({ query: '', lineIndex: 0, stationIndex: 0, areaIndex: 0,
-      stations: [{ id: '', name: '全部站点' }].concat(this.allStations),
-      filters: this.data.filters.map(f => Object.assign({}, f, { active: false })) }); this.refresh();
-  },
-  onSelect(e) { this.setData({ selectedId: e.currentTarget.dataset.id, mobileView: 'map' }); this.refresh(); },
-  switchView(e) { this.setData({ mobileView: e.currentTarget.dataset.view }); },
-  openReport() { this.setData({ showReport: true, reportError: '' }); },
-  closeReport() { this.setData({ showReport: false }); },
-  openSupport() { this.setData({ showSupport: true }); },
-  closeSupport() { this.setData({ showSupport: false }); },
-  stopTap() {},
-  onReportName(e) { this.setData({ reportName: e.detail.value }); },
-  onReportHint(e) { this.setData({ reportHint: e.detail.value }); },
-  onReportType(e) { this.setData({ reportType: Number(e.detail.value) }); },
-  onReportStatus(e) { this.setData({ reportStatus: Number(e.detail.value) }); },
-  submitReport() {
-    const name = this.data.reportName.trim(), hint = this.data.reportHint.trim();
-    if (!name || !hint) { this.setData({ reportError: '请填写位置名称和楼层／入口说明' }); return; }
-    const type = types[this.data.reportType], status = this.data.statuses[this.data.reportStatus];
-    const tags = type.id === 'all-gender' ? ['male', 'female'] : [type.id];
-    if (status === '营业中') tags.push('open');
-    const report = this.service.addFeedback({ id: 'user-' + Date.now(), name, floor: '用户反馈', near: hint, sign: hint,
-      type: type.id, typeLabel: type.label, typeNote: '用户补充，待现场核实', tags, labels: [type.label, '待核实'],
-      x: 50, y: 50, distance: '待核实', eta: null, rating: null, reviews: 0, updated: '刚刚', status,
-      confidence: '待核实', quote: '仅保存在本次演示中；图中位置为占位，不代表实际坐标。', metro: null });
-    this.clearAll();
-    this.setData({ selectedId: report.id, showReport: false, reportName: '', reportHint: '', reportType: 0, reportStatus: 0, mobileView: 'map' });
-    this.refresh(); wx.showToast({ title: '已加入本次演示', icon: 'none' });
-  }
+  onSelect(e) { this.select(Number(e.currentTarget.dataset.index)); },
+  onMarker(e) { this.select(Number(e.detail.markerId)); },
+  select(index) { const selected = this.data.results[index]; if(selected) this.setData({selected,latitude:selected.latitude,longitude:selected.longitude,mobileView:'map'}); },
+  switchView(e) { this.setData({mobileView:e.currentTarget.dataset.view}); },
+  navigate() { const p=this.data.selected; if(p) wx.openLocation({latitude:p.latitude,longitude:p.longitude,name:p.name,address:p.address,scale:17,fail:()=>wx.showToast({title:'无法打开地图，请稍后再试',icon:'none'})}); }
 });

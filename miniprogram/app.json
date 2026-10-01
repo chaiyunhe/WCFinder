@@ -1,6 +1,22 @@
 {
-  "pages": ["pages/index/index"],
-  "window": { "navigationBarTitleText": "WCFinder · 厕位导航", "navigationBarBackgroundColor": "#f7faf8", "navigationBarTextStyle": "black", "backgroundColor": "#f7faf8" },
+  "pages": [
+    "pages/index/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "WCFinder · 厕位导航",
+    "navigationBarBackgroundColor": "#f8f6fc",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f8f6fc"
+  },
   "style": "v2",
-  "sitemapLocation": "sitemap.json"
+  "sitemapLocation": "sitemap.json",
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于查找你附近的厕所"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation"
+  ],
+  "lazyCodeLoading": "requiredComponents"
 }
