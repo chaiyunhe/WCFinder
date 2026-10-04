@@ -1,8 +1,8 @@
-const { baseUrl } = require('../../services/api-config');
+const { baseUrl, cloudEnv, functionName } = require('../../services/api-config');
 Page({
   data: { query:'', results:[], selected:null, markers:[], loading:false, error:'', searched:false, mobileView:'list', latitude:31.2304, longitude:121.4737 },
   onLoad() { this.requestId = 0; },
-  onUnload() { this.requestId++; if (this.task) this.task.abort(); },
+  onUnload() { this.requestId++; if (this.task && this.task.abort) this.task.abort(); },
   onSearch(e) { this.setData({query:e.detail.value}); },
   search() {
     const query = this.data.query.trim();
@@ -20,11 +20,11 @@ Page({
   },
   load(params) {
     const id = ++this.requestId;
-    if (this.task) this.task.abort();
+    if (this.task && this.task.abort) this.task.abort();
     this.setData({loading:false,error:'',results:[],markers:[],selected:null,searched:true});
-    if (!/^https:\/\//.test(baseUrl)) { this.setData({error:'线上查询服务尚未开通，请稍后再试'}); return; }
+    if (!cloudEnv && !/^https:\/\//.test(baseUrl)) { this.setData({error:'线上查询服务尚未开通，请稍后再试'}); return; }
     this.setData({loading:true});
-    this.task = wx.request({url:baseUrl.replace(/\/$/,'')+'/api/restrooms',data:params,timeout:10000,
+    const callbacks = {
       success:res => {
         if(id !== this.requestId) return;
         if(res.statusCode !== 200 || !res.data || !Array.isArray(res.data.results)) { this.setData({error:res.data && res.data.error || '查询失败，请重试'}); return; }
@@ -34,7 +34,14 @@ Page({
         this.setData({results,markers,selected:first || null,...(first ? {latitude:first.latitude,longitude:first.longitude}: {})});
       },fail:() => { if(id === this.requestId) this.setData({error:'网络连接失败，请重试'}); },
       complete:() => { if(id === this.requestId) this.setData({loading:false}); }
-    });
+    };
+    if (cloudEnv) {
+      if (!wx.cloud) { callbacks.fail(); callbacks.complete(); return; }
+      wx.cloud.callFunction({name:functionName,config:{env:cloudEnv},data:params,success:res=>callbacks.success(res.result || {}),fail:callbacks.fail,complete:callbacks.complete});
+      this.task = null;
+    } else {
+      this.task = wx.request({url:baseUrl.replace(/\/$/,'')+'/api/restrooms',data:params,timeout:10000,...callbacks});
+    }
   },
   onSelect(e) { this.select(Number(e.currentTarget.dataset.index)); },
   onMarker(e) { this.select(Number(e.detail.markerId)); },

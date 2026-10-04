@@ -21,5 +21,6 @@
   },
   "appid": "wx7f158580754f0989",
   "editorSetting": {},
-  "miniprogramRoot": "miniprogram/"
+  "miniprogramRoot": "miniprogram/",
+  "cloudfunctionRoot": "cloudfunctions/"
 }
