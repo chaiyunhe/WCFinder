@@ -1,15 +1,61 @@
 import http from 'node:http';
+import https from 'node:https';
 import { pathToFileURL } from 'node:url';
-export function normalize(pois) {
-  const seen = new Set();
-  return pois.flatMap(p => {
-    const [longitude, latitude] = String(p.location || '').split(',').map(Number);
-    if (!String(p.type || '').includes('公共厕所') || !p.id || !p.name || !Number.isFinite(longitude) || !Number.isFinite(latitude) || longitude < 120.8 || longitude > 122.1 || latitude < 30.6 || latitude > 31.9 || seen.has(p.id)) return [];
-    seen.add(p.id);
-    return [{ id: String(p.id), name: String(p.name), address: [p.adname, typeof p.address === 'string' ? p.address : ''].filter(Boolean).join(' '), longitude, latitude, source: '高德地图' }];
+// Use Node's built-in HTTPS client so cloud runtimes do not need global fetch.
+export function fetchJson(url, {timeoutMs = 8000} = {}) {
+  return new Promise((resolve, reject) => {
+    const request = https.get(url, response => {
+      const chunks = [];
+      let size = 0;
+      response.on('data', chunk => {
+        size += chunk.length;
+        if (size > 1024 * 1024) { response.destroy(new Error('response too large')); return; }
+        chunks.push(chunk);
+      });
+      response.on('error', reject);
+      response.on('end', () => {
+        try {
+          const data = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+          resolve({ok: response.statusCode >= 200 && response.statusCode < 300, json: async () => data});
+        } catch (error) { reject(error); }
+      });
+    });
+    const timer = setTimeout(() => request.destroy(new Error('upstream timeout')), timeoutMs);
+    request.on('error', reject);
+    request.on('close', () => clearTimeout(timer));
   });
 }
-export function createHandler({ key = process.env.AMAP_WEB_KEY, fetcher = fetch } = {}) {
+const categories = {toilet: {type: '公共厕所'}, parking: {type: '停车场'}, aed: {keyword: 'AED'}};
+const validCoordinates = (longitude, latitude) => Number.isFinite(longitude) && Number.isFinite(latitude) && longitude >= 73 && longitude <= 136 && latitude >= 3 && latitude <= 54;
+export function distanceMeters(a, b) {
+  const rad = Math.PI / 180;
+  const dLat = (b.latitude - a.latitude) * rad, dLon = (b.longitude - a.longitude) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.latitude * rad) * Math.cos(b.latitude * rad) * Math.sin(dLon / 2) ** 2;
+  return Math.round(6371000 * 2 * Math.asin(Math.sqrt(Math.min(1, h))));
+}
+export function normalize(pois, category = 'toilet', origin) {
+  const seen = new Set();
+  const results = pois.flatMap(p => {
+    const [longitude, latitude] = String(p.location || '').split(',').map(Number);
+    const matches = category === 'aed' ? /AED|自动体外除颤|自动除颤/i.test(String(p.name || '')) : String(p.type || '').includes(categories[category].type);
+    if (!matches || !p.id || !p.name || !validCoordinates(longitude, latitude) || seen.has(p.id)) return [];
+    seen.add(p.id);
+    const item = { id: String(p.id), name: String(p.name), address: [p.cityname, p.adname, typeof p.address === 'string' ? p.address : ''].filter(v => typeof v === 'string' && v).join(' '), longitude, latitude, source: '高德地图', category };
+    if (origin) item.distanceMeters = distanceMeters(origin, item);
+    return [item];
+  });
+  if (origin) results.sort((a, b) => a.distanceMeters - b.distanceMeters);
+  return results;
+}
+export function normalizeCity(address) {
+  const province = typeof address.province === 'string' ? address.province : '';
+  const name = typeof address.city === 'string' && address.city ? address.city : (/^(北京|上海|天津|重庆)/.test(province) ? province : address.district);
+  const code = String(address.adcode || '');
+  if (!name || !/^\d{6}$/.test(code)) throw new Error('missing city');
+  const adcode = /^(11|12|31|50)/.test(code) ? code.slice(0, 2) + '0000' : /^(4190|4290|4690|6590)/.test(code) ? code : code.slice(0, 4) + '00';
+  return {name, adcode};
+}
+export function createHandler({ key = process.env.AMAP_WEB_KEY, fetcher = fetchJson } = {}) {
   let day = '', used = 0;
   const clients = new Map();
   return async (req, res) => {
@@ -21,10 +67,16 @@ export function createHandler({ key = process.env.AMAP_WEB_KEY, fetcher = fetch 
     if (!key) return reply(503, {error:'查询服务尚未配置，请稍后再试'});
     const query = (url.searchParams.get('q') || '').trim();
     if (query.length > 80) return reply(400, {error:'搜索词过长'});
+    const action = url.searchParams.get('action') || 'search';
+    const category = url.searchParams.get('category') || 'toilet';
+    const scope = url.searchParams.get('scope') || '';
+    const city = (url.searchParams.get('city') || '上海').trim();
+    if (!Object.hasOwnProperty.call(categories, category) || !['search','locate'].includes(action) || !['','city','nearby'].includes(scope) || !/^[\u3400-\u9fffA-Za-z0-9·\s-]{1,40}$/.test(city)) return reply(400, {error:'查询参数无效'});
     const hasCoords = url.searchParams.has('longitude') || url.searchParams.has('latitude');
     const longitude = Number(url.searchParams.get('longitude')), latitude = Number(url.searchParams.get('latitude'));
-    if (hasCoords && (!url.searchParams.has('longitude') || !url.searchParams.has('latitude') || !Number.isFinite(longitude) || !Number.isFinite(latitude) || longitude < 120.8 || longitude > 122.1 || latitude < 30.6 || latitude > 31.9)) return reply(400, {error:'首版仅支持上海，请输入上海的地点名称'});
-    if (!query && !hasCoords) return reply(400, {error:'请输入地点或使用附近搜索'});
+    if (hasCoords && (!url.searchParams.get('longitude')?.trim() || !url.searchParams.get('latitude')?.trim() || !validCoordinates(longitude, latitude))) return reply(400, {error:'位置坐标无效，请重新定位'});
+    if ((action === 'locate' || scope === 'nearby') && !hasCoords) return reply(400, {error:'请先授权获取当前位置'});
+    if (action === 'search' && !query && !hasCoords && !url.searchParams.has('city')) return reply(400, {error:'请输入地点或选择城市'});
     const now = Date.now(), today = new Date().toISOString().slice(0,10);
     if (day !== today) { day = today; used = 0; }
     for (const [id, value] of clients) if (value.reset < now) clients.delete(id);
@@ -32,16 +84,21 @@ export function createHandler({ key = process.env.AMAP_WEB_KEY, fetcher = fetch 
     const rate = clients.get(ip) || {count:0,reset:now+60000};
     clients.set(ip, rate);
     if (++rate.count > 30 || used >= Number(process.env.DAILY_QUERY_LIMIT || 1000)) return reply(429, {error:'查询较频繁，请稍后再试'});
-    const endpoint = hasCoords && !query ? 'around' : 'text';
-    const params = new URLSearchParams({ key, types:'公共厕所', keywords:query, city:'上海', citylimit:'true', offset:'20', page:'1', extensions:'base', output:'JSON' });
+    const endpoint = scope === 'nearby' || (!scope && hasCoords && !query) ? 'around' : 'text';
+    const config = categories[category];
+    const params = new URLSearchParams({ key, keywords: [query, config.keyword].filter(Boolean).join(' '), city, citylimit:'true', offset:'20', page:'1', extensions:'base', output:'JSON' });
+    if (config.type) params.set('types', config.type);
     if (endpoint === 'around') { params.set('location', `${longitude.toFixed(6)},${latitude.toFixed(6)}`); params.set('radius','3000'); params.set('sortrule','distance'); }
+    let upstreamUrl = `https://restapi.amap.com/v3/place/${endpoint}?${params}`;
+    if (action === 'locate') upstreamUrl = 'https://restapi.amap.com/v3/geocode/regeo?' + new URLSearchParams({key, location:`${longitude.toFixed(6)},${latitude.toFixed(6)}`, extensions:'base', output:'JSON'});
     used++;
     try {
-      const upstream = await fetcher(`https://restapi.amap.com/v3/place/${endpoint}?${params}`, {signal:AbortSignal.timeout(8000)});
+      const upstream = await fetcher(upstreamUrl, {timeoutMs:8000});
       if (!upstream.ok) throw new Error('upstream');
       const data = await upstream.json();
+      if (data.status === '1' && action === 'locate') return reply(200, {city:normalizeCity(data.regeocode?.addressComponent || {})});
       if (data.status !== '1' || !Array.isArray(data.pois)) throw new Error('provider');
-      reply(200, {results:normalize(data.pois), source:'高德地图', limited:true});
+      reply(200, {results:normalize(data.pois, category, hasCoords ? {longitude,latitude} : undefined), source:'高德地图', limited:true, category, distanceType:hasCoords ? 'straight-line' : null});
     } catch { reply(502, {error:'地图查询暂时不可用，请稍后重试'}); }
   };
 }

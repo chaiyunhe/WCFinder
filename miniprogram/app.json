@@ -3,7 +3,7 @@
     "pages/index/index"
   ],
   "window": {
-    "navigationBarTitleText": "WCFinder · 厕位导航",
+    "navigationBarTitleText": "三急导航",
     "navigationBarBackgroundColor": "#f8f6fc",
     "navigationBarTextStyle": "black",
     "backgroundColor": "#f8f6fc"
@@ -12,7 +12,7 @@
   "sitemapLocation": "sitemap.json",
   "permission": {
     "scope.userLocation": {
-      "desc": "用于查找你附近的厕所"
+      "desc": "用于识别当前城市、查找附近厕所、AED和停车场并估算距离"
     }
   },
   "requiredPrivateInfos": [

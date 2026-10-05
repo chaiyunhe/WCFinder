@@ -1,25 +1,30 @@
 <view class="shell">
  <view class="left">
   <view class="search">
-   <view class="heading">找个方便的地方</view>
-   <view class="note">上海 · 真实地点查询</view>
-   <input class="input" value="{{query}}" bindinput="onSearch" bindconfirm="search" confirm-type="search" maxlength="80" placeholder="输入地点、地铁站或厕所名称" />
-   <view class="actions"><button class="primary" bindtap="search" loading="{{loading}}" disabled="{{loading}}">搜索厕所</button><button bindtap="nearby" disabled="{{loading}}">查找附近</button></view>
-   <view class="note">地点搜索无需定位；地铁站附近结果不代表站内或站台厕所。</view>
+   <view class="heading">急需的，就在附近</view>
+   <view class="note">找厕所 · 找 AED · 找停车场</view>
+   <view class="city-row"><picker mode="region" level="city" value="{{region}}" bindchange="onCityChange"><view class="city">{{cityName}} ▾</view></picker><button size="mini" bindtap="locateCity" loading="{{locating}}">定位当前城市</button></view>
+   <view class="categories"><button class="{{category === 'toilet' ? 'primary' : ''}}" data-category="toilet" bindtap="onCategoryChange">厕所</button><button class="{{category === 'aed' ? 'primary' : ''}}" data-category="aed" bindtap="onCategoryChange">AED</button><button class="{{category === 'parking' ? 'primary' : ''}}" data-category="parking" bindtap="onCategoryChange">停车场</button></view>
+   <input class="input" value="{{query}}" bindinput="onSearch" bindconfirm="search" confirm-type="search" maxlength="80" placeholder="输入地点、地铁站或设施名称（可选）" />
+   <view class="actions"><button class="primary" bindtap="search" loading="{{loading}}" disabled="{{loading}}">搜索{{categoryLabel}}</button><button bindtap="nearby" disabled="{{loading}}">查找附近</button></view>
+   <view class="note">城市搜索无需定位；附近结果不代表地铁站内或站台设施。</view>
+   <view wx:if="{{category === 'aed'}}" class="aed-note">AED 点位信息可能不完整，设备可用性请现场确认。紧急情况请立即拨打 120。</view>
   </view>
   <view class="mobile-tabs"><button data-view="list" bindtap="switchView">列表 {{results.length}}</button><button data-view="map" bindtap="switchView">地图</button></view>
   <scroll-view scroll-y class="results {{mobileView !== 'list' ? 'mobile-hidden' : ''}}">
    <view wx:if="{{loading}}" class="empty">正在查询真实地点…</view>
    <view wx:elif="{{error}}" class="empty">{{error}}</view>
-   <view wx:elif="{{!searched}}" class="empty">搜索上海的地点，或查找附近 3 公里内的厕所。</view>
-   <view wx:elif="{{!results.length}}" class="empty">未找到相关厕所，请换一个地点搜索。</view>
-   <view wx:for="{{results}}" wx:key="id" class="card" data-index="{{index}}" bindtap="onSelect"><view class="name">{{item.name}}</view><view class="meta">{{item.address}}</view><view class="note">来源：高德地图 · 查看位置与导航</view></view>
-   <view wx:if="{{results.length}}" class="note">最多展示 20 个结果。开放时间、无障碍设施及收费情况请现场确认。</view>
+   <view wx:elif="{{!searched}}" class="empty">选择城市搜索{{categoryLabel}}，或授权定位查找附近设施。</view>
+   <view wx:elif="{{!results.length}}" class="empty">未找到相关{{categoryLabel}}，请换一个地点搜索。</view>
+   <view wx:for="{{results}}" wx:key="id" class="card" data-index="{{index}}" bindtap="onSelect"><view class="name">{{item.name}}</view><view wx:if="{{item.distanceText}}" class="distance">{{item.distanceText}} · 直线距离</view><view class="meta">{{item.address}}</view><view class="note">来源：高德地图 · 查看位置与导航</view></view>
+   <view wx:if="{{results.length}}" class="note">最多展示 20 个结果。{{hasLocation ? '按距当前位置的直线距离排序，非步行距离。' : '尚未定位，距离暂不可用。'}}开放时间、无障碍设施及收费情况请现场确认。</view>
   </scroll-view>
  </view>
  <view class="right {{mobileView !== 'map' ? 'mobile-hidden' : ''}}">
   <map class="live-map" latitude="{{latitude}}" longitude="{{longitude}}" markers="{{markers}}" scale="15" bindmarkertap="onMarker" />
   <view wx:if="{{selected}}" class="card"><view class="name">{{selected.name}}</view><view class="meta">{{selected.address}}</view><view class="note">地点信息：高德地图。地图底图由微信提供，具体入口请现场确认。</view><button class="primary" bindtap="navigate">打开地图导航</button></view>
-  <view wx:else class="empty">搜索后可在地图上查看厕所位置。</view>
+  <view wx:else class="empty">搜索后可在地图上查看设施位置。</view>
  </view>
 </view>
+
+<view class="contact-footer"><view class="contact-title">联系我</view><button class="contact-button" bindtap="copyWechat">微信 HiYunhe · 点击复制</button></view>

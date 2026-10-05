@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, normalize } from './index.mjs';
 const poi={id:'a',name:'公共厕所',type:'公共设施;公共厕所',location:'121.47,31.23',address:'入口',adname:'黄浦区'};
-test('只保留上海有效厕所点位，并按供应商 ID 去重',()=>{
+test('只保留有效厕所点位，并按供应商 ID 去重',()=>{
  assert.equal(normalize([poi,poi,{...poi,id:'b',location:'0,0'},{...poi,id:'c',type:'餐饮服务'}]).length,1);
  assert.equal(normalize([poi])[0].address,'黄浦区 入口');
 });
@@ -15,3 +15,31 @@ test('真实接口参数、坐标校验、响应及密钥不泄露',async t=>{
  const r=await fetch(base+'/api/restrooms?latitude=31.23&longitude=121.47');const body=await r.text();assert.equal(r.status,200);assert.equal(calls,1);assert.ok(!body.includes('test-only'));assert.equal(JSON.parse(body).results.length,1);
 });
 test('供应商失败返回错误且不暴露供应商响应',async t=>{const base=await serve(t,{key:'test',fetcher:async()=>({ok:true,json:async()=>({status:'0',info:'sensitive'})})});const r=await fetch(base+'/api/restrooms?q=厕所');assert.equal(r.status,502);assert.ok(!(await r.text()).includes('sensitive'));});
+test('全国多类点位按真实坐标直线距离排序，不把普通医院当作 AED',()=>{
+ const origin={longitude:116.4,latitude:39.9};
+ const near={...poi,id:'bj1',location:'116.401,39.9'},far={...poi,id:'bj2',location:'116.42,39.9'};
+ const rows=normalize([far,near,near],'toilet',origin);
+ assert.deepEqual(rows.map(r=>r.id),['bj1','bj2']);assert.ok(rows[0].distanceMeters>0);assert.ok(rows[0].distanceMeters<100);
+ assert.equal(normalize([{...near,name:'医院',type:'医疗保健服务'},{...far,name:'AED自动体外除颤器',type:'医疗保健服务'}],'aed').length,1);
+ assert.equal(normalize([{...near,type:'交通设施服务;停车场'}],'parking').length,1);
+});
+test('跨城查询保留选择的城市，坐标只用于排序；AED按关键词搜索',async t=>{
+ const urls=[];const base=await serve(t,{key:'test',fetcher:async url=>{urls.push(new URL(url));return {ok:true,json:async()=>({status:'1',pois:[]})};}});
+ for(const category of ['toilet','parking','aed']){
+ const r=await fetch(base+'/api/restrooms?city=110000&scope=city&category='+category+'&longitude=121.47&latitude=31.23');assert.equal(r.status,200);
+ }
+ assert.ok(urls.every(u=>u.pathname==='/v3/place/text'&&u.searchParams.get('city')==='110000'));
+ assert.equal(urls[1].searchParams.get('types'),'停车场');assert.equal(urls[2].searchParams.get('keywords'),'AED');assert.equal(urls[2].searchParams.has('types'),false);
+ assert.equal((await fetch(base+'/api/restrooms?city=北京&category=invalid')).status,400);
+ assert.equal((await fetch(base+'/api/restrooms?scope=nearby')).status,400);
+ assert.equal((await fetch(base+'/api/restrooms?longitude=&latitude=31')).status,400);
+ assert.equal(urls.length,3);
+});
+test('逆地理解析直辖市及一般城市到市级区域码',async t=>{
+ let address={province:'北京市',city:[],district:'朝阳区',adcode:'110105'};
+ const base=await serve(t,{key:'test',fetcher:async url=>{assert.equal(new URL(url).pathname,'/v3/geocode/regeo');return {ok:true,json:async()=>({status:'1',regeocode:{addressComponent:address}})};}});
+ const url=base+'/api/restrooms?action=locate&longitude=116.4&latitude=39.9';
+ assert.deepEqual((await (await fetch(url)).json()).city,{name:'北京市',adcode:'110000'});
+ address={province:'江苏省',city:'苏州市',adcode:'320505'};
+ assert.deepEqual((await (await fetch(url)).json()).city,{name:'苏州市',adcode:'320500'});
+});

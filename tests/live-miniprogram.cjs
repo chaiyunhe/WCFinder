@@ -2,7 +2,7 @@ const assert=require('node:assert/strict');
 const vm=require('node:vm');
 const fs=require('node:fs');
 let page;const requests=[];
-vm.runInNewContext(fs.readFileSync('miniprogram/pages/index/index.js','utf8'),{require:()=>({baseUrl:'https://test.example'}),Page:p=>page=p,wx:{request:o=>{requests.push(o);return {abort(){}};}}});
+vm.runInNewContext(fs.readFileSync('miniprogram/pages/index/index.js','utf8'),{require:()=>({baseUrl:'https://test.example'}),Page:p=>page=p,wx:{showModal(){},request:o=>{requests.push(o);return {abort(){}};}}});
 page.setData=function(p){Object.assign(this.data,p);};page.onLoad();
 page.load({q:'甲'});page.load({q:'乙'});
 requests[0].success({statusCode:200,data:{results:[{id:'old',name:'旧地点',latitude:31,longitude:121}]}});
