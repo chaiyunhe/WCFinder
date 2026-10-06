@@ -1,14 +1,24 @@
 <view class="shell">
  <view class="left">
   <view class="search">
-   <view class="heading">急需的，就在附近</view>
+
+   <view class="heading-row"><view class="heading">急需的，就在附近</view><view class="city-row"><picker mode="region" level="city" value="{{region}}" bindchange="onCityChange"><view class="city">{{cityName}} ▾</view></picker><button size="mini" bindtap="locateCity" loading="{{locating}}">重新定位</button></view></view>
    <view class="note">找厕所 · 找 AED · 找停车场</view>
-   <view class="city-row"><picker mode="region" level="city" value="{{region}}" bindchange="onCityChange"><view class="city">{{cityName}} ▾</view></picker><button size="mini" bindtap="locateCity" loading="{{locating}}">定位当前城市</button></view>
-   <view class="categories"><button class="{{category === 'toilet' ? 'primary' : ''}}" data-category="toilet" bindtap="onCategoryChange">厕所</button><button class="{{category === 'aed' ? 'primary' : ''}}" data-category="aed" bindtap="onCategoryChange">AED</button><button class="{{category === 'parking' ? 'primary' : ''}}" data-category="parking" bindtap="onCategoryChange">停车场</button></view>
-   <view class="search-modes"><button class="{{searchMode === 'address' ? 'mode-active' : ''}}" data-mode="address" bindtap="switchSearchMode">地址搜索</button><button class="{{searchMode === 'metro' ? 'mode-active' : ''}}" data-mode="metro" bindtap="switchSearchMode">地铁线路 / 站点</button></view>
-   <view wx:if="{{searchMode === 'metro'}}" class="metro-fields"><view class="note">{{cityName}} · 填写线路与站名</view><input class="input" value="{{metroLine}}" bindinput="onMetroLine" maxlength="30" placeholder="线路（可选），如 2号线" /><input class="input" value="{{metroStation}}" bindinput="onMetroStation" bindconfirm="search" confirm-type="search" maxlength="40" placeholder="地铁站名称，如 人民广场" /></view>
-   <input wx:else class="input" value="{{query}}" bindinput="onSearch" bindconfirm="search" confirm-type="search" maxlength="80" placeholder="输入地点、地铁站或设施名称（可选）" />
-   <view class="actions"><button class="primary" bindtap="search" loading="{{loading}}" disabled="{{loading}}">搜索{{categoryLabel}}</button><button bindtap="nearby" disabled="{{loading}}">查找附近</button></view>
+
+   <view class="group-label">找什么</view><view class="categories"><button class="facility-card {{category === 'toilet' ? 'facility-active' : ''}}" data-category="toilet" bindtap="onCategoryChange"><view class="facility-icon restroom-icon"><view class="person person-left"><view class="person-head"></view><view class="person-body"></view><view class="person-legs"></view></view><view class="icon-divider"></view><view class="person person-right"><view class="person-head"></view><view class="person-body"></view><view class="person-legs"></view></view></view><view>厕所</view><text class="selected-mark">{{category === 'toilet' ? '✓' : ''}}</text></button><button class="facility-card {{category === 'aed' ? 'facility-active' : ''}}" data-category="aed" bindtap="onCategoryChange"><view class="facility-icon">♥</view><view>AED</view><text class="selected-mark">{{category === 'aed' ? '✓' : ''}}</text></button><button class="facility-card {{category === 'parking' ? 'facility-active' : ''}}" data-category="parking" bindtap="onCategoryChange"><view class="facility-icon">P</view><view>停车场</view><text class="selected-mark">{{category === 'parking' ? '✓' : ''}}</text></button></view>
+   <view class="group-label mode-label">怎么找</view>
+   <view class="search-modes"><button class="{{searchMode === 'nearby' ? 'mode-active' : ''}}" data-mode="nearby" bindtap="switchSearchMode">附近</button><button class="{{searchMode === 'address' ? 'mode-active' : ''}}" data-mode="address" bindtap="switchSearchMode">地址搜索</button><button class="{{searchMode === 'metro' ? 'mode-active' : ''}}" data-mode="metro" bindtap="switchSearchMode">地铁线路 / 站点</button></view>
+   <view wx:if="{{searchMode === 'metro'}}" class="metro-fields"><view class="note">{{cityName}} · 先选线路，再选站点（单选）</view>
+        <picker mode="selector" range="{{metroLines}}" value="{{metroLineIndex}}" bindchange="onMetroLine" disabled="{{!metroLines.length}}">
+          <view class="input">{{metroLine || '请选择地铁线路'}} ▾</view>
+        </picker>
+        <picker mode="selector" range="{{metroStations}}" value="{{metroStationIndex}}" bindchange="onMetroStation" disabled="{{!metroLine}}">
+          <view class="input">{{metroStation || '请选择地铁站'}} ▾</view>
+        </picker>
+        <view wx:if="{{!metroLines.length}}" class="note">该城市暂无收录的地铁数据，请使用地址搜索。</view>
+        </view>
+   <input wx:elif="{{searchMode === 'address'}}" class="input" value="{{query}}" bindinput="onSearch" bindconfirm="search" confirm-type="search" maxlength="80" placeholder="输入地点、地铁站或设施名称（可选）" />
+   <view class="actions"><button class="primary" bindtap="search" loading="{{loading}}" disabled="{{loading}}">{{searchMode === 'nearby' ? '查找附近' : '搜索'}}{{categoryLabel}}</button></view>
    <view class="note">城市搜索无需定位；附近结果不代表地铁站内或站台设施。</view>
    <view wx:if="{{category === 'aed'}}" class="aed-note">AED 点位信息可能不完整，设备可用性请现场确认。紧急情况请立即拨打 120。</view>
   </view>
@@ -18,7 +28,7 @@
    <view wx:elif="{{error}}" class="empty">{{error}}</view>
    <view wx:elif="{{!searched}}" class="empty">选择城市搜索{{categoryLabel}}，或授权定位查找附近设施。</view>
    <view wx:elif="{{!results.length}}" class="empty">未找到相关{{categoryLabel}}，请换一个地点搜索。</view>
-   <view wx:for="{{results}}" wx:key="id" class="card" data-index="{{index}}" bindtap="onSelect"><view class="name">{{item.name}}</view><view wx:if="{{item.distanceText}}" class="distance">{{item.distanceText}} · 直线距离</view><view class="meta">{{item.address}}</view><view class="note">来源：高德地图 · 查看位置与导航</view></view>
+   <view wx:for="{{results}}" wx:key="id" class="card" data-index="{{index}}" bindtap="onSelect"><view class="result-title"><view class="name">{{item.name}}</view><view wx:if="{{item.restroomTypes.length}}" class="restroom-tags"><text wx:for="{{item.restroomTypes}}" wx:for-item="restroomType" wx:key="*this" class="restroom-tag">{{restroomType}}</text></view></view><view wx:if="{{item.distanceText}}" class="distance">{{item.distanceText}}<text class="distance-caption">直线距离</text></view><view class="result-location"><view class="meta">{{item.displayAddress}}</view><view class="location-action">查看位置与导航 →</view></view><view class="note">来源：高德地图</view></view>
    <view wx:if="{{results.length}}" class="note">最多展示 20 个结果。{{hasLocation ? '按距当前位置的直线距离排序，非步行距离。' : '尚未定位，距离暂不可用。'}}开放时间、无障碍设施及收费情况请现场确认。</view>
   </scroll-view>
  </view>

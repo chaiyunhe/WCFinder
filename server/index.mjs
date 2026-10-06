@@ -33,6 +33,15 @@ export function distanceMeters(a, b) {
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.latitude * rad) * Math.cos(b.latitude * rad) * Math.sin(dLon / 2) ** 2;
   return Math.round(6371000 * 2 * Math.asin(Math.sqrt(Math.min(1, h))));
 }
+// Only explicit facility labels in the provider's POI name; no inference from generic toilets.
+export function restroomTypes(name) {
+  const text=String(name || '');
+  return [
+    ['男厕', /男(?:厕(?:所)?|卫生间|洗手间)/],
+    ['女厕', /女(?:厕(?:所)?|卫生间|洗手间)/],
+    ['第三卫生间', /第三(?:卫生间|厕所)/]
+  ].filter(([,pattern])=>pattern.test(text) && !new RegExp('(?:无|没有|不设|未设|非)' + pattern.source).test(text)).map(([label])=>label);
+}
 export function normalize(pois, category = 'toilet', origin) {
   const seen = new Set();
   const results = pois.flatMap(p => {
@@ -41,6 +50,7 @@ export function normalize(pois, category = 'toilet', origin) {
     if (!matches || !p.id || !p.name || !validCoordinates(longitude, latitude) || seen.has(p.id)) return [];
     seen.add(p.id);
     const item = { id: String(p.id), name: String(p.name), address: [p.cityname, p.adname, typeof p.address === 'string' ? p.address : ''].filter(v => typeof v === 'string' && v).join(' '), longitude, latitude, source: '高德地图', category };
+    if (category === 'toilet') item.restroomTypes = restroomTypes(p.name);
     if (origin) item.distanceMeters = distanceMeters(origin, item);
     return [item];
   });

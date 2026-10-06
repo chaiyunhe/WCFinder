@@ -5,3 +5,46 @@
 .contact-footer{text-align:center;padding:28rpx 24rpx calc(28rpx + env(safe-area-inset-bottom));background:#f8f6fc;border-top:1px solid #e5ddef}.contact-title{font-size:24rpx;color:#736b80;margin-bottom:8rpx}.contact-button{display:inline-block;background:transparent;color:#7546c8;font-size:26rpx;padding:0 20rpx;margin:0}.contact-button::after{border:0}
 
 .search-modes{display:flex;gap:12rpx;margin-top:20rpx}.search-modes button{flex:1;background:transparent;color:#736b80;font-size:24rpx}.search-modes .mode-active{color:#7546c8;background:#f1eafa}.metro-fields{margin-top:16rpx}.metro-fields .input{margin:12rpx 0}
+
+.group-label{margin-top:28rpx;font-size:24rpx;font-weight:600;color:#574764;letter-spacing:2rpx}
+.categories{margin-top:14rpx;gap:16rpx}
+.categories .facility-card{position:relative;display:flex;flex-direction:row;gap:12rpx;align-items:center;justify-content:center;min-height:100rpx;margin:0;line-height:1.5;border:2rpx solid #e9e3ef;border-radius:20rpx;background:#fff;color:#655a70;font-weight:600;padding:18rpx 8rpx}
+.facility-card::after,.search-modes button::after{border:0}
+.facility-icon{display:flex;align-items:center;justify-content:center;width:48rpx;height:48rpx;margin-bottom:0;font-size:28rpx;font-weight:700;color:#8a789e}
+.categories .facility-active{border-color:#7546c8;background:#f6f0ff;color:#6134ab;box-shadow:0 4rpx 12rpx #7546c810}
+.facility-active .facility-icon{color:#7546c8}
+.selected-mark{position:absolute;right:10rpx;top:6rpx;font-size:22rpx;color:#7546c8}
+.mode-label{margin-top:28rpx}
+.search-modes{gap:4rpx;margin-top:12rpx;padding:6rpx;background:#f1f2f5;border-radius:14rpx}
+.search-modes button{margin:0;padding:0 8rpx;line-height:64rpx;border-radius:10rpx;font-weight:400;color:#7a7881}
+.search-modes .mode-active{background:#fff;color:#302443;font-weight:600;box-shadow:0 2rpx 8rpx #30244312}
+
+.restroom-icon{position:relative;gap:6rpx}
+.person{position:relative;width:16rpx;height:36rpx}
+.person-head{position:absolute;top:0;left:4rpx;width:8rpx;height:8rpx;border-radius:50%;background:currentColor}
+.person-body{position:absolute;top:11rpx;left:2rpx;width:12rpx;height:14rpx;border-radius:4rpx 4rpx 2rpx 2rpx;background:currentColor}
+.person-right .person-body{left:0;width:16rpx;clip-path:polygon(30% 0,70% 0,100% 100%,0 100%)}
+.person-legs{position:absolute;top:24rpx;left:3rpx;width:4rpx;height:12rpx;background:currentColor;box-shadow:6rpx 0 currentColor}
+.icon-divider{width:2rpx;height:36rpx;background:currentColor;opacity:.3}
+
+.restroom-tags{display:flex;flex-wrap:wrap;gap:10rpx;align-items:center;margin:10rpx 0 14rpx}.restroom-tag{font-size:22rpx;color:#65527c;background:#f2edf8;padding:4rpx 14rpx;border-radius:8rpx}.tag-source{font-size:20rpx;color:#93899e}
+
+.result-title{display:flex;align-items:baseline;justify-content:space-between;gap:12rpx;flex-wrap:wrap;margin-bottom:12rpx}
+.result-title .name{margin-bottom:0;min-width:0;flex:1;overflow-wrap:anywhere}
+.result-title .restroom-tags{margin:0 0 0 auto;gap:8rpx;justify-content:flex-end}
+.result-title .restroom-tag{font-size:20rpx;font-weight:400;color:#93899e;background:#f6f4f8;padding:2rpx 8rpx;border-radius:6rpx}
+
+.result-location{display:flex;align-items:baseline;justify-content:space-between;gap:16rpx}.result-location .meta{flex:1;min-width:0;overflow-wrap:anywhere}.location-action{flex-shrink:0;font-size:22rpx;color:#7546c8;line-height:1.7}
+
+.distance-caption{margin-left:12rpx;font-size:20rpx;font-weight:400;color:#93899e}
+
+.city-row{margin-top:0;margin-bottom:18rpx;padding-bottom:12rpx;border-bottom:1rpx solid #f0ecf4;justify-content:flex-start;gap:20rpx}
+.city-row .city{font-size:24rpx;font-weight:400;color:#736b80}
+.city-row button{font-size:22rpx;font-weight:400;color:#93899e;background:transparent;line-height:1.6;padding:0 0 0 20rpx;border-left:1rpx solid #e5ddef;border-radius:0}
+.city-row button::after{border:0}
+
+.heading-row{display:flex;align-items:center;justify-content:space-between;gap:12rpx}
+.heading-row .heading{font-size:34rpx;flex-shrink:0}
+.heading-row .city-row{margin:0;padding:0;border:0;gap:8rpx;justify-content:flex-end;flex-wrap:wrap}
+.heading-row .city{font-size:22rpx}
+.heading-row .city-row button{font-size:20rpx;padding-left:8rpx}

@@ -43,3 +43,10 @@ test('逆地理解析直辖市及一般城市到市级区域码',async t=>{
  address={province:'江苏省',city:'苏州市',adcode:'320505'};
  assert.deepEqual((await (await fetch(url)).json()).city,{name:'苏州市',adcode:'320500'});
 });
+
+test('厕所类型只展示明确名称标注，未知和无障碍不推断',()=>{
+ for(const [name,expected] of [['公共厕所',[]],['公园男厕所',['男厕']],['女卫生间',['女厕']],['第三卫生间',['第三卫生间']],['无障碍卫生间',[]],['公共厕所(无女厕)',[]]]){
+  assert.deepEqual(normalize([{...poi,name}])[0].restroomTypes,expected);
+ }
+ assert.equal(normalize([{...poi,type:'交通设施服务;停车场'}],'parking')[0].restroomTypes,undefined);
+});
