@@ -7,15 +7,18 @@ function distance(a,b) {
 }
 function valid(p) { return p && Number.isFinite(p.latitude) && Number.isFinite(p.longitude) && Math.abs(p.latitude)<=90 && Math.abs(p.longitude)<=180; }
 Page({
-  data: { query:'',city:'',cityName:'请选择城市',region:[],category:'toilet',categoryLabel:'厕所',hasLocation:false,locating:false,results:[], selected:null, markers:[], loading:false, error:'', searched:false, mobileView:'list', latitude:31.2304, longitude:121.4737 },
+  data: { searchMode:'address',metroLine:'',metroStation:'',query:'',city:'',cityName:'请选择城市',region:[],category:'toilet',categoryLabel:'厕所',hasLocation:false,locating:false,results:[], selected:null, markers:[], loading:false, error:'', searched:false, mobileView:'list', latitude:31.2304, longitude:121.4737 },
   onLoad() { this.requestId=0;this.locationId=0;this.cityRevision=0;this.alive=true;this.locateCity(); },
   onUnload() { this.alive=false;this.requestId++;this.locationId++;if(this.task&&this.task.abort)this.task.abort(); },
   onSearch(e) { this.setData({query:e.detail.value}); },
+  switchSearchMode(e) { const mode=e.currentTarget.dataset.mode;if(!['address','metro'].includes(mode))return;this.locationId++;this.clearResults();this.setData({searchMode:mode,locating:false}); },
+  onMetroLine(e) { this.setData({metroLine:e.detail.value}); },
+  onMetroStation(e) { this.setData({metroStation:e.detail.value}); },
   clearResults() { this.requestId++;if(this.task&&this.task.abort)this.task.abort();this.setData({results:[],markers:[],selected:null,error:'',loading:false,searched:false}); },
   onCityChange(e) {
     const region=e.detail.value, city=region[1]==='市辖区'||region[1]==='县'?region[0]:region[1];
     this.cityRevision++;this.locationId++;this.clearResults();
-    this.setData({region,city,cityName:city,locating:false});this.search();
+    this.setData({region,city,cityName:city,locating:false,metroLine:'',metroStation:''});if(this.data.searchMode==='address')this.search();
   },
   onCategoryChange(e) {
     const category=e.currentTarget.dataset.category;if(!labels[category]||category===this.data.category)return;
@@ -24,7 +27,13 @@ Page({
   },
   search() {
     if(!this.data.city){this.setData({error:'请先选择城市，或定位当前城市'});return;}
-    this.load({q:this.data.query.trim()});
+    let query=this.data.query.trim();
+    if(this.data.searchMode==='metro'){
+      const line=this.data.metroLine.trim(),station=this.data.metroStation.trim();
+      if(!station){this.setData({error:'请填写地铁站名称，线路可选'});return;}
+      query=[line,station.endsWith('站')?station:station+'站'].filter(Boolean).join(' ');
+    }
+    this.load({q:query});
   },
   locateCity() { this.locate(false); },
   nearby() { this.locate(true); },
@@ -43,7 +52,7 @@ Page({
           const city=res.data&&res.data.city;
           if(res.statusCode!==200||!city||!city.name){this.setData({error:res.data&&res.data.error||'未能识别城市，请手动选择'});return;}
           this.setData({city:city.adcode||city.name,cityName:city.name,...(nearby?{query:''}:{})});
-          this.load(nearby?{scope:'nearby'}:{q:this.data.query.trim()});
+          if(nearby)this.load({scope:'nearby'});else this.search();
         },fail:()=>{if(this.alive&&token===this.locationId)this.setData({error:'城市定位失败，请手动选择城市'});},complete:()=>{if(this.alive&&token===this.locationId)this.setData({locating:false});}});
       },fail:()=>{if(this.alive&&token===this.locationId)this.setData({locating:false,error:'未能获取位置，请手动选择城市搜索'});}});
     }});

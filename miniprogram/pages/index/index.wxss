@@ -3,3 +3,5 @@
 .city-row{display:flex;align-items:center;justify-content:space-between;margin-top:18rpx}.city{font-size:30rpx;color:#7546c8;font-weight:600}.city-row button{margin:0;font-size:22rpx}.categories{display:flex;gap:12rpx;margin-top:20rpx}.categories button{flex:1;font-size:26rpx;padding:0 8rpx}.distance{color:#7546c8;font-weight:600;font-size:26rpx;margin-bottom:8rpx}.aed-note{font-size:24rpx;background:#fff5e8;color:#855413;padding:16rpx;border-radius:12rpx;line-height:1.6}
 
 .contact-footer{text-align:center;padding:28rpx 24rpx calc(28rpx + env(safe-area-inset-bottom));background:#f8f6fc;border-top:1px solid #e5ddef}.contact-title{font-size:24rpx;color:#736b80;margin-bottom:8rpx}.contact-button{display:inline-block;background:transparent;color:#7546c8;font-size:26rpx;padding:0 20rpx;margin:0}.contact-button::after{border:0}
+
+.search-modes{display:flex;gap:12rpx;margin-top:20rpx}.search-modes button{flex:1;background:transparent;color:#736b80;font-size:24rpx}.search-modes .mode-active{color:#7546c8;background:#f1eafa}.metro-fields{margin-top:16rpx}.metro-fields .input{margin:12rpx 0}

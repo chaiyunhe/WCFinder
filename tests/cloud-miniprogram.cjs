@@ -48,3 +48,11 @@ const nearbyCity=queue[queue.length-1];nearbyCity.success({result:{statusCode:20
 assert.equal(queue[queue.length-1].data.scope,'nearby');
 assert.equal(queue[queue.length-1].data.latitude,30);
 console.log('PASS nearby query scope');
+
+page.onLoad();page.setData({city:'上海市',query:'旧地址'});
+page.switchSearchMode({currentTarget:{dataset:{mode:'metro'}}});
+let before=calls.length;page.search();assert.equal(calls.length,before);
+page.onMetroLine({detail:{value:'2号线'}});page.onMetroStation({detail:{value:'人民广场'}});page.search();
+assert.equal(calls[calls.length-1].data.q,'2号线 人民广场站');
+page.onCityChange({detail:{value:['浙江省','宁波市']}});assert.equal(page.data.metroStation,'');assert.equal(page.data.metroLine,'');
+console.log('PASS metro input validation, query and city reset');

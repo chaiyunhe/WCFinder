@@ -5,7 +5,9 @@
    <view class="note">找厕所 · 找 AED · 找停车场</view>
    <view class="city-row"><picker mode="region" level="city" value="{{region}}" bindchange="onCityChange"><view class="city">{{cityName}} ▾</view></picker><button size="mini" bindtap="locateCity" loading="{{locating}}">定位当前城市</button></view>
    <view class="categories"><button class="{{category === 'toilet' ? 'primary' : ''}}" data-category="toilet" bindtap="onCategoryChange">厕所</button><button class="{{category === 'aed' ? 'primary' : ''}}" data-category="aed" bindtap="onCategoryChange">AED</button><button class="{{category === 'parking' ? 'primary' : ''}}" data-category="parking" bindtap="onCategoryChange">停车场</button></view>
-   <input class="input" value="{{query}}" bindinput="onSearch" bindconfirm="search" confirm-type="search" maxlength="80" placeholder="输入地点、地铁站或设施名称（可选）" />
+   <view class="search-modes"><button class="{{searchMode === 'address' ? 'mode-active' : ''}}" data-mode="address" bindtap="switchSearchMode">地址搜索</button><button class="{{searchMode === 'metro' ? 'mode-active' : ''}}" data-mode="metro" bindtap="switchSearchMode">地铁线路 / 站点</button></view>
+   <view wx:if="{{searchMode === 'metro'}}" class="metro-fields"><view class="note">{{cityName}} · 填写线路与站名</view><input class="input" value="{{metroLine}}" bindinput="onMetroLine" maxlength="30" placeholder="线路（可选），如 2号线" /><input class="input" value="{{metroStation}}" bindinput="onMetroStation" bindconfirm="search" confirm-type="search" maxlength="40" placeholder="地铁站名称，如 人民广场" /></view>
+   <input wx:else class="input" value="{{query}}" bindinput="onSearch" bindconfirm="search" confirm-type="search" maxlength="80" placeholder="输入地点、地铁站或设施名称（可选）" />
    <view class="actions"><button class="primary" bindtap="search" loading="{{loading}}" disabled="{{loading}}">搜索{{categoryLabel}}</button><button bindtap="nearby" disabled="{{loading}}">查找附近</button></view>
    <view class="note">城市搜索无需定位；附近结果不代表地铁站内或站台设施。</view>
    <view wx:if="{{category === 'aed'}}" class="aed-note">AED 点位信息可能不完整，设备可用性请现场确认。紧急情况请立即拨打 120。</view>
