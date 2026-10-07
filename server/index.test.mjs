@@ -93,3 +93,16 @@ test('指定地点无法定位不退回当前位置',async t=>{
  const base=await serve(t,{key:'test',fetcher:async()=>({ok:true,json:async()=>({status:'1',pois:[]})})});
  assert.equal((await fetch(base+'/api/restrooms?scope=target&q=不存在的地点&city=上海')).status,404);
 });
+test('充电站汽修店支持城市、附近、目标位置搜索并排除错误类型',async t=>{
+ for(const [category,type] of [['charging','充电站'],['repair','汽车维修']]){
+  const urls=[];const base=await serve(t,{key:'test',fetcher:async url=>{
+   const u=new URL(url);urls.push(u);
+   return {ok:true,json:async()=>({status:'1',pois:u.searchParams.get('keywords')==='目标地址'?[{name:'目标地址',location:'121.47,31.23'}]:[{...poi,name:type,type}, {...poi,id:'wrong',type:'餐饮服务'}]})};
+  }});
+  for(const query of ['scope=city','scope=nearby&longitude=121.47&latitude=31.23','scope=target&q=目标地址']){
+   const response=await fetch(base+'/api/restrooms?city=上海&category='+category+'&'+query);
+   const data=await response.json();assert.equal(response.status,200);assert.equal(data.results.length,1);assert.equal(data.results[0].category,category);
+   assert.equal(urls.at(-1).searchParams.get('types'),type);
+  }
+ }
+});

@@ -1,7 +1,7 @@
 const metroCoordinates = require('../../data/metro-coordinates');
 const metroData = require('../../data/metro');
 const { baseUrl, cloudEnv, functionName } = require('../../services/api-config');
-const labels = {toilet:'厕所',aed:'AED',parking:'停车场'};
+const labels = {toilet:'厕所',parking:'停车场',aed:'AED',charging:'充电站',repair:'汽修店'};
 function distance(a,b) {
   const rad=Math.PI/180, dlat=(b.latitude-a.latitude)*rad,dlon=(b.longitude-a.longitude)*rad;
   const h=Math.sin(dlat/2)**2+Math.cos(a.latitude*rad)*Math.cos(b.latitude*rad)*Math.sin(dlon/2)**2;
@@ -63,7 +63,7 @@ Page({
   nearby() { this.locate(true); },
   locate(nearby) {
     const token=++this.locationId, revision=this.cityRevision;
-    wx.showModal({title:'使用当前位置',content:'经你同意后获取位置，通过查询服务发送给高德地图，用于识别当前城市、查找附近厕所/AED/停车场，并估算距离。取消后仍可手动选择城市搜索。',success:answer=>{
+    wx.showModal({title:'使用当前位置',content:'经你同意后获取位置，通过查询服务发送给高德地图，用于识别当前城市、查找附近厕所、停车场、AED、充电站、汽修店，并估算距离。取消后仍可手动选择城市搜索。',success:answer=>{
       if(!this.alive||token!==this.locationId||!answer.confirm)return;
       this.setData({locating:true,error:''});
       wx.getLocation({type:'gcj02',success:pos=>{

@@ -25,7 +25,7 @@ export function fetchJson(url, {timeoutMs = 8000} = {}) {
     request.on('close', () => clearTimeout(timer));
   });
 }
-const categories = {toilet: {type: '公共厕所'}, parking: {type: '停车场'}, aed: {keyword: 'AED'}};
+const categories = {toilet: {type: '公共厕所'}, parking: {type: '停车场'}, aed: {keyword: 'AED'}, charging: {type:'充电站'}, repair: {type:'汽车维修'}};
 const validCoordinates = (longitude, latitude) => Number.isFinite(longitude) && Number.isFinite(latitude) && longitude >= 73 && longitude <= 136 && latitude >= 3 && latitude <= 54;
 export function distanceMeters(a, b) {
   const rad = Math.PI / 180;

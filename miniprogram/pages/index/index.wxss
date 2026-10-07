@@ -66,3 +66,5 @@
 .map-icon view{width:9rpx;height:24rpx;border:2rpx solid currentColor;transform:skewY(-18deg)}
 .map-icon view:nth-child(2){transform:skewY(18deg);border-left:0;border-right:0}
 @media(max-width:720px){.mobile-tabs{justify-content:center;padding:20rpx 24rpx}}
+
+.categories{flex-wrap:wrap}.categories .facility-card{flex:0 0 calc((100% - 32rpx)/3);box-sizing:border-box}
