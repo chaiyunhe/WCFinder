@@ -3,7 +3,7 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 let page; const calls = [];
 vm.runInNewContext(fs.readFileSync('miniprogram/pages/index/index.js','utf8'), {
-  require:path=>path.includes('metro.json')?JSON.parse(fs.readFileSync('miniprogram/data/metro.json','utf8')):({cloudEnv:'test',functionName:'restroomSearch'}), Page:p=>page=p,
+  require:path=>path.includes('/data/metro')?require('../miniprogram/data/metro'):({cloudEnv:'test',functionName:'restroomSearch'}), Page:p=>page=p,
   wx:{showModal(){},cloud:{callFunction:o=>calls.push(o)}}
 });
 page.setData=function(p){Object.assign(this.data,p);}; page.onLoad();
@@ -29,7 +29,7 @@ console.log('PASS actual distance ordering, cross-city context, no-location and 
 // Location consent is mandatory; delayed location callbacks cannot override manual selection.
 let consent,locateCallback,locationCalls=0;const queue=[];let p;
 vm.runInNewContext(fs.readFileSync('miniprogram/pages/index/index.js','utf8'),{
- require:path=>path.includes('metro.json')?JSON.parse(fs.readFileSync('miniprogram/data/metro.json','utf8')):({cloudEnv:'test',functionName:'restroomSearch'}),Page:v=>p=v,
+ require:path=>path.includes('/data/metro')?require('../miniprogram/data/metro'):({cloudEnv:'test',functionName:'restroomSearch'}),Page:v=>p=v,
  wx:{showModal:o=>consent=o,getLocation:o=>{locationCalls++;locateCallback=o;},cloud:{callFunction:o=>queue.push(o)}}
 });
 p.setData=function(v){Object.assign(this.data,v);};p.onLoad();assert.equal(locationCalls,0);
@@ -64,7 +64,7 @@ page.userLocation={latitude:31,longitude:121};page.switchSearchMode({currentTarg
 // A fresh page queries nearby toilets after consent, without a search tap.
 let initialPage,initialConsent,initialLocation;const initialCalls=[];
 vm.runInNewContext(fs.readFileSync('miniprogram/pages/index/index.js','utf8'),{
- require:path=>path.includes('metro.json')?JSON.parse(fs.readFileSync('miniprogram/data/metro.json','utf8')):({cloudEnv:'test',functionName:'restroomSearch'}),
+ require:path=>path.includes('/data/metro')?require('../miniprogram/data/metro'):({cloudEnv:'test',functionName:'restroomSearch'}),
  Page:v=>initialPage=v,
  wx:{showModal:o=>initialConsent=o,getLocation:o=>initialLocation=o,cloud:{callFunction:o=>initialCalls.push(o)}}
 });

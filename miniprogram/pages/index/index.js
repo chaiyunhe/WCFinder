@@ -1,4 +1,4 @@
-const metroData = require('../../data/metro.json');
+const metroData = require('../../data/metro');
 const { baseUrl, cloudEnv, functionName } = require('../../services/api-config');
 const labels = {toilet:'厕所',aed:'AED',parking:'停车场'};
 function distance(a,b) {
