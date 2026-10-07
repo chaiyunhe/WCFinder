@@ -98,7 +98,7 @@ Page({
     this.task=this.request(query,callbacks);
   },
   onSelect(e) { this.select(Number(e.currentTarget.dataset.index)); },
-  onMarker(e) { this.select(Number(e.detail.markerId)); },
+  onMarker(e) { const index=Number(e.detail.markerId);if(!Number.isInteger(index)||!this.data.results[index])return;this.select(index);this.navigate(); },
   select(index) { const selected=this.data.results[index];if(selected)this.setData({selected,latitude:selected.latitude,longitude:selected.longitude,mobileView:'map'}); },
   switchView(e) { this.setData({mobileView:e.currentTarget.dataset.view}); },
   copyWechat() { wx.setClipboardData({data:'HiYunhe',fail:()=>wx.showToast({title:'复制失败，请手动添加 HiYunhe',icon:'none'})}); },

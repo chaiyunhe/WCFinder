@@ -33,8 +33,8 @@
   </scroll-view>
  </view>
  <view class="right {{mobileView !== 'map' ? 'mobile-hidden' : ''}}">
-  <map class="live-map" latitude="{{latitude}}" longitude="{{longitude}}" markers="{{markers}}" scale="15" bindmarkertap="onMarker" />
-  <view wx:if="{{selected}}" class="card"><view class="name">{{selected.name}}</view><view class="meta">{{selected.address}}</view><view class="note">地点信息：高德地图。地图底图由微信提供，具体入口请现场确认。</view><button class="primary" bindtap="navigate">打开地图导航</button></view>
+  <map class="live-map" latitude="{{latitude}}" longitude="{{longitude}}" markers="{{markers}}" scale="15" bindmarkertap="onMarker" bindcallouttap="onMarker" show-location />
+  <view wx:if="{{selected}}" class="card"><view class="name">{{selected.name}}</view><view class="meta">{{selected.address}}</view><view class="note">点击标记或下方按钮打开微信地图，再点击路线/导航，从当前位置出发。具体入口请现场确认。</view><button class="primary" bindtap="navigate">去这里 · 打开导航</button></view>
   <view wx:else class="empty">搜索后可在地图上查看设施位置。</view>
  </view>
 </view>
