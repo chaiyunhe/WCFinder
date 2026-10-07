@@ -42,9 +42,36 @@ export function restroomTypes(name) {
     ['第三卫生间', /第三(?:卫生间|厕所)/]
   ].filter(([,pattern])=>pattern.test(text) && !new RegExp('(?:无|没有|不设|未设|非)' + pattern.source).test(text)).map(([label])=>label);
 }
+function restroomIdentity(name) {
+  return name.replace(/第三(?:卫生间|厕所)|[男女](?:厕(?:所)?|卫生间|洗手间)/g, '厕所')
+    .replace(/公共卫生间|公共厕所|卫生间|洗手间/g, '厕所')
+    .replace(/[（(]厕所[)）]/g, '').replace(/[\s·—_()（）-]/g, '')
+    .replace(/(?:厕所)+/g, '厕所');
+}
+export function mergeRestrooms(items) {
+  const groups = [];
+  for (const item of items) {
+    const key = restroomIdentity(item.name);
+    // Require the same facility name and address. Compare every member to avoid chain merging.
+    const group = groups.find(g => g.key === key && g.address === item.address &&
+      (item.address || key !== '厕所') &&
+      g.members.every(other => distanceMeters(other, item) <= 20) &&
+      (item.restroomTypes.length || g.members.some(other => other.restroomTypes.length)));
+    if (group) group.members.push(item);
+    else groups.push({key, address:item.address, members:[item]});
+  }
+  return groups.map(g => {
+    if (g.members.length === 1) return g.members[0];
+    const representative = g.members.find(p => !p.restroomTypes.length) || g.members[0];
+    const types = new Set(g.members.flatMap(p => p.restroomTypes));
+    return {...representative, name:representative.restroomTypes.length ? g.key : representative.name,
+      restroomTypes:['男厕','女厕','第三卫生间'].filter(t => types.has(t)),
+      mergedCount:g.members.length};
+  });
+}
 export function normalize(pois, category = 'toilet', origin) {
   const seen = new Set();
-  const results = pois.flatMap(p => {
+  let results = pois.flatMap(p => {
     const [longitude, latitude] = String(p.location || '').split(',').map(Number);
     const matches = category === 'aed' ? /AED|自动体外除颤|自动除颤/i.test(String(p.name || '')) : String(p.type || '').includes(categories[category].type);
     if (!matches || !p.id || !p.name || !validCoordinates(longitude, latitude) || seen.has(p.id)) return [];
@@ -54,6 +81,7 @@ export function normalize(pois, category = 'toilet', origin) {
     if (origin) item.distanceMeters = distanceMeters(origin, item);
     return [item];
   });
+  if (category === 'toilet') results = mergeRestrooms(results);
   if (origin) results.sort((a, b) => a.distanceMeters - b.distanceMeters);
   return results;
 }

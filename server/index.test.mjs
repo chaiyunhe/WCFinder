@@ -50,3 +50,28 @@ test('厕所类型只展示明确名称标注，未知和无障碍不推断',()=
  }
  assert.equal(normalize([{...poi,type:'交通设施服务;停车场'}],'parking')[0].restroomTypes,undefined);
 });
+
+test('同址男女厕及第三卫生间合并并保留标签',()=>{
+ const rows=normalize([
+ {...poi,id:'m',name:'公园公共厕所(男厕)'},
+ {...poi,id:'f',name:'公园公共厕所(女厕)',location:'121.47005,31.23'},
+ {...poi,id:'t',name:'公园公共厕所(第三卫生间)'}
+ ],'toilet',{longitude:121.47,latitude:31.23});
+ assert.equal(rows.length,1);assert.equal(rows[0].name,'公园厕所');
+ assert.deepEqual(rows[0].restroomTypes,['男厕','女厕','第三卫生间']);
+ assert.equal(rows[0].mergedCount,3);assert.equal(rows[0].longitude,121.47);
+});
+test('不同楼层入口、不同名称及较远位置不合并，其他类别不受影响',()=>{
+ const male={...poi,name:'商场男厕所'};
+ for(const other of [
+ {...poi,id:'f',name:'商场女厕所',address:'二层'},
+ {...poi,id:'f',name:'另一商场女厕所'},
+ {...poi,id:'f',name:'商场女厕所',location:'121.471,31.23'}
+ ])assert.equal(normalize([male,other]).length,2);
+ assert.equal(normalize([{...male,type:'交通设施服务;停车场'},{...male,id:'b',type:'交通设施服务;停车场'}],'parking').length,2);
+});
+test('通用名称缺少地址不合并，相邻点不进行链式合并',()=>{
+ assert.equal(normalize([{...poi,name:'男厕',address:'',adname:''},{...poi,id:'b',name:'女厕',address:'',adname:''}]).length,2);
+ const rows=normalize([0,1,2].map((n)=>({...poi,id:String(n),name:n===1?'女厕':'男厕',location:'121.47,'+(31.23+n*0.00013)})));
+ assert.equal(rows.length,2);
+});
