@@ -75,3 +75,21 @@ test('通用名称缺少地址不合并，相邻点不进行链式合并',()=>{
  const rows=normalize([0,1,2].map((n)=>({...poi,id:String(n),name:n===1?'女厕':'男厕',location:'121.47,'+(31.23+n*0.00013)})));
  assert.equal(rows.length,2);
 });
+test('指定地点先解析坐标，再查周边并按目标而非用户位置排序',async t=>{
+ const urls=[];const base=await serve(t,{key:'test',fetcher:async url=>{
+  const u=new URL(url);urls.push(u);
+  return {ok:true,json:async()=>({status:'1',pois:u.pathname.endsWith('/text')?[{name:'人民广场地铁站',location:'121.47,31.23'}]:[
+   {...poi,id:'far',location:'121.48,31.23'}, {...poi,id:'near',location:'121.4701,31.23'}]})};
+ }});
+ const response=await fetch(base+'/api/restrooms?scope=target&q=人民广场站&city=上海&longitude=116.4&latitude=39.9');
+ const data=await response.json();assert.equal(response.status,200);
+ assert.equal(urls[0].searchParams.get('keywords'),'人民广场站');
+ assert.equal(urls[1].pathname,'/v3/place/around');
+ assert.equal(urls[1].searchParams.get('location'),'121.470000,31.230000');
+ assert.equal(data.searchOrigin.name,'人民广场地铁站');
+ assert.equal(data.results[0].id,'near');assert.ok(data.results[0].distanceMeters<20);
+});
+test('指定地点无法定位不退回当前位置',async t=>{
+ const base=await serve(t,{key:'test',fetcher:async()=>({ok:true,json:async()=>({status:'1',pois:[]})})});
+ assert.equal((await fetch(base+'/api/restrooms?scope=target&q=不存在的地点&city=上海')).status,404);
+});

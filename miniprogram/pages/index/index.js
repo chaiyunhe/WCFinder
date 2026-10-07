@@ -1,3 +1,4 @@
+const metroCoordinates = require('../../data/metro-coordinates');
 const metroData = require('../../data/metro');
 const { baseUrl, cloudEnv, functionName } = require('../../services/api-config');
 const labels = {toilet:'厕所',aed:'AED',parking:'停车场'};
@@ -8,7 +9,7 @@ function distance(a,b) {
 }
 function valid(p) { return p && Number.isFinite(p.latitude) && Number.isFinite(p.longitude) && Math.abs(p.latitude)<=90 && Math.abs(p.longitude)<=180; }
 Page({
-  data: { metroLines:[],metroStations:[],metroLineIndex:0,metroStationIndex:0,searchMode:'nearby',metroLine:'',metroStation:'',query:'',city:'',cityName:'请选择城市',region:[],category:'toilet',categoryLabel:'厕所',hasLocation:false,locating:false,results:[], selected:null, markers:[], loading:false, error:'', searched:false, mobileView:'list', latitude:31.2304, longitude:121.4737 },
+  data: { distanceOriginLabel:'',metroLines:[],metroStations:[],metroLineIndex:0,metroStationIndex:0,searchMode:'nearby',metroLine:'',metroStation:'',query:'',city:'',cityName:'请选择城市',region:[],category:'toilet',categoryLabel:'厕所',hasLocation:false,locating:false,results:[], selected:null, markers:[], loading:false, error:'', searched:false, mobileView:'list', latitude:31.2304, longitude:121.4737 },
   onLoad() { this.requestId=0;this.locationId=0;this.cityRevision=0;this.alive=true;this.nearby(); },
   onUnload() { this.alive=false;this.requestId++;this.locationId++;if(this.task&&this.task.abort)this.task.abort(); },
   onSearch(e) { this.setData({query:e.detail.value}); },
@@ -16,6 +17,17 @@ Page({
   resetMetro() {
     this.metroCityLines=metroData[(this.data.cityName||this.data.city).replace(/市$/,'')]||[];
     this.setData({metroLines:this.metroCityLines.map(l=>l.name),metroStations:[],metroLine:'',metroStation:'',metroLineIndex:0,metroStationIndex:0});
+    const city=(this.data.cityName||'').replace(/市$/,'');
+    const coordinates=metroCoordinates[city]||{};
+    if(!valid(this.userLocation)||city!==this.locationCity)return;
+    let nearest=null;
+    this.metroCityLines.forEach((line,li)=>line.stations.forEach((name,si)=>{
+      const c=coordinates[name];if(!c)return;
+      const meters=distance(this.userLocation,{longitude:c[0],latitude:c[1]});
+      if(!nearest||meters<nearest.meters)nearest={li,si,name,meters};
+    }));
+    if(nearest){const line=this.metroCityLines[nearest.li];this.setData({metroLineIndex:nearest.li,metroStationIndex:nearest.si,metroLine:line.name,metroStation:nearest.name,metroStations:line.stations});}
+
   },
   onMetroLine(e) {
     const index=Number(e.detail.value),line=(this.metroCityLines||[])[index];if(!line)return;
@@ -25,7 +37,7 @@ Page({
     const index=Number(e.detail.value),station=this.data.metroStations[index];if(!station)return;
     this.clearResults();this.setData({metroStationIndex:index,metroStation:station});
   },
-  clearResults() { this.requestId++;if(this.task&&this.task.abort)this.task.abort();this.setData({results:[],markers:[],selected:null,error:'',loading:false,searched:false}); },
+  clearResults() { this.requestId++;if(this.task&&this.task.abort)this.task.abort();this.setData({results:[],markers:[],selected:null,distanceOriginLabel:'',error:'',loading:false,searched:false}); },
   onCityChange(e) {
     const region=e.detail.value, city=region[1]==='市辖区'||region[1]==='县'?region[0]:region[1];
     this.cityRevision++;this.locationId++;this.clearResults();
@@ -45,7 +57,7 @@ Page({
       if(!line||!station){this.setData({error:'请依次选择地铁线路和站点'});return;}
       query=[line,station.endsWith('站')?station:station+'站'].filter(Boolean).join(' ');
     }
-    this.load({q:query});
+    this.load({scope:query?'target':'city',q:query});
   },
   locateCity() { this.locate(this.data.searchMode==='nearby'); },
   nearby() { this.locate(true); },
@@ -63,6 +75,7 @@ Page({
           if(!this.alive||token!==this.locationId||revision!==this.cityRevision)return;
           const city=res.data&&res.data.city;
           if(res.statusCode!==200||!city||!city.name){this.setData({error:res.data&&res.data.error||'未能识别城市，请手动选择'});return;}
+          this.locationCity=city.name.replace(/市$/,'');
           this.setData({city:city.adcode||city.name,cityName:city.name,...(nearby?{query:''}:{})});
           this.resetMetro();
           if(nearby)this.load({scope:'nearby'});else this.search();
@@ -79,19 +92,21 @@ Page({
     const id=++this.requestId;if(this.task&&this.task.abort)this.task.abort();
     this.setData({loading:true,error:'',results:[],markers:[],selected:null,searched:true});
     // User coordinates are independent of map center and selected city.
-    const query={scope:'city',city:this.data.city,category:this.data.category,...params,...(this.userLocation||{})};
+    const query={scope:'city',city:this.data.city,category:this.data.category,...params,...(params.scope==='nearby' ? this.userLocation||{} : {})};
     const callbacks={success:res=>{
       if(id!==this.requestId||!this.alive)return;
       if(res.statusCode!==200||!res.data||!Array.isArray(res.data.results)){this.setData({error:res.data&&res.data.error||'查询失败，请重试'});return;}
+      const origin=valid(res.data.searchOrigin)?res.data.searchOrigin:(query.scope==='nearby'?this.userLocation:null);
+      this.setData({distanceOriginLabel:origin?(query.scope==='nearby'?'当前位置':origin.name||params.q||'搜索位置'):''});
       const results=res.data.results.filter(p=>valid(p)&&typeof p.name==='string').map(p=>{
-        const meters=this.userLocation?distance(this.userLocation,p):null;
+        const meters=origin?distance(origin,p):null;
         const cityName=(this.data.cityName||'').replace(/市$/,'');
         const address=typeof p.address==='string'?p.address:'';
         const displayAddress=cityName && address.startsWith(cityName)
           ? address.slice(cityName.length).replace(/^市/,'').trim() : address;
         return {...p,displayAddress,distanceMeters:meters,distanceText:meters===null?'':meters<1000?'约 '+Math.round(meters/10)*10+' 米':'约 '+(meters/1000).toFixed(1)+' 公里'};
       });
-      if(this.userLocation)results.sort((a,b)=>a.distanceMeters-b.distanceMeters);
+      if(origin)results.sort((a,b)=>a.distanceMeters-b.distanceMeters);
       const markers=results.map((p,i)=>({id:i,latitude:p.latitude,longitude:p.longitude,title:p.name,callout:{content:p.name,display:'BYCLICK',padding:8,borderRadius:8}}));
       const first=results[0];this.setData({results,markers,selected:first||null,...(first?{latitude:first.latitude,longitude:first.longitude}:{})});
     },fail:()=>{if(id===this.requestId&&this.alive)this.setData({error:'查询服务连接失败，请稍后重试'});},complete:()=>{if(id===this.requestId&&this.alive)this.setData({loading:false});}};

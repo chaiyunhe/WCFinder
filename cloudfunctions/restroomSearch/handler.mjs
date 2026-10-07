@@ -109,12 +109,13 @@ export function createHandler({ key = process.env.AMAP_WEB_KEY, fetcher = fetchJ
     const category = url.searchParams.get('category') || 'toilet';
     const scope = url.searchParams.get('scope') || '';
     const city = (url.searchParams.get('city') || '上海').trim();
-    if (!Object.hasOwnProperty.call(categories, category) || !['search','locate'].includes(action) || !['','city','nearby'].includes(scope) || !/^[\u3400-\u9fffA-Za-z0-9·\s-]{1,40}$/.test(city)) return reply(400, {error:'查询参数无效'});
+    if (!Object.hasOwnProperty.call(categories, category) || !['search','locate'].includes(action) || !['','city','nearby','target'].includes(scope) || !/^[\u3400-\u9fffA-Za-z0-9·\s-]{1,40}$/.test(city)) return reply(400, {error:'查询参数无效'});
     const hasCoords = url.searchParams.has('longitude') || url.searchParams.has('latitude');
     const longitude = Number(url.searchParams.get('longitude')), latitude = Number(url.searchParams.get('latitude'));
     if (hasCoords && (!url.searchParams.get('longitude')?.trim() || !url.searchParams.get('latitude')?.trim() || !validCoordinates(longitude, latitude))) return reply(400, {error:'位置坐标无效，请重新定位'});
     if ((action === 'locate' || scope === 'nearby') && !hasCoords) return reply(400, {error:'请先授权获取当前位置'});
     if (action === 'search' && !query && !hasCoords && !url.searchParams.has('city')) return reply(400, {error:'请输入地点或选择城市'});
+    if (scope === 'target' && !query) return reply(400, {error:'请输入地址或选择地铁站点'});
     const now = Date.now(), today = new Date().toISOString().slice(0,10);
     if (day !== today) { day = today; used = 0; }
     for (const [id, value] of clients) if (value.reset < now) clients.delete(id);
@@ -131,12 +132,29 @@ export function createHandler({ key = process.env.AMAP_WEB_KEY, fetcher = fetchJ
     if (action === 'locate') upstreamUrl = 'https://restapi.amap.com/v3/geocode/regeo?' + new URLSearchParams({key, location:`${longitude.toFixed(6)},${latitude.toFixed(6)}`, extensions:'base', output:'JSON'});
     used++;
     try {
+      let searchOrigin = hasCoords ? {longitude,latitude} : undefined;
+      if (scope === 'target' && action === 'search') {
+        const targetParams = new URLSearchParams({key,keywords:query,city,citylimit:'true',offset:'1',page:'1',extensions:'base',output:'JSON'});
+        const targetResponse = await fetcher('https://restapi.amap.com/v3/place/text?' + targetParams,{timeoutMs:8000});
+        if (!targetResponse.ok) throw new Error('target');
+        const targetData = await targetResponse.json();
+        if(targetData.status !== '1') throw new Error('target');
+        const target = targetData.pois && targetData.pois[0];
+        const [lng,lat] = String(target && target.location || '').split(',').map(Number);
+        if (!target || !validCoordinates(lng,lat)) return reply(404,{error:'未找到指定地点，请补充更准确的地址或站名'});
+        searchOrigin={longitude:lng,latitude:lat,name:target.name || query};
+        params.set('keywords',config.keyword || '');
+        params.set('location',lng.toFixed(6)+','+lat.toFixed(6));params.set('radius','3000');params.set('sortrule','distance');
+        upstreamUrl='https://restapi.amap.com/v3/place/around?'+params;
+        if(used >= Number(process.env.DAILY_QUERY_LIMIT || 1000)) return reply(429,{error:'查询较频繁，请稍后再试'});
+        used++;
+      }
       const upstream = await fetcher(upstreamUrl, {timeoutMs:8000});
       if (!upstream.ok) throw new Error('upstream');
       const data = await upstream.json();
       if (data.status === '1' && action === 'locate') return reply(200, {city:normalizeCity(data.regeocode?.addressComponent || {})});
       if (data.status !== '1' || !Array.isArray(data.pois)) throw new Error('provider');
-      reply(200, {results:normalize(data.pois, category, hasCoords ? {longitude,latitude} : undefined), source:'高德地图', limited:true, category, distanceType:hasCoords ? 'straight-line' : null});
+      reply(200, {results:normalize(data.pois, category, searchOrigin), source:'高德地图', limited:true, category, searchOrigin:searchOrigin || null, distanceType:searchOrigin ? 'straight-line' : null});
     } catch { reply(502, {error:'地图查询暂时不可用，请稍后重试'}); }
   };
 }

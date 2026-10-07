@@ -20,3 +20,10 @@ page.onMarker({detail:{markerId:0}});
 assert.equal(opened.length,1);assert.equal(opened[0].latitude,31.2);assert.equal(opened[0].longitude,121.4);
 page.onMarker({detail:{markerId:99}});assert.equal(opened.length,1);
 console.log('PASS marker tap opens correct navigation destination, invalid marker ignored');
+
+const coordinates=require('../miniprogram/data/metro-coordinates')['上海']['人民广场'];
+page.userLocation={longitude:coordinates[0],latitude:coordinates[1]};page.locationCity='上海';page.resetMetro();
+assert.equal(page.data.metroStation,'人民广场');
+assert.ok(page.data.metroStations.includes('人民广场'));
+page.setData({cityName:'北京市'});page.resetMetro();assert.equal(page.data.metroStation,'');
+console.log('PASS nearest metro default and cross-city manual selection');

@@ -3,7 +3,7 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 let page; const calls = [];
 vm.runInNewContext(fs.readFileSync('miniprogram/pages/index/index.js','utf8'), {
-  require:path=>path.includes('/data/metro')?require('../miniprogram/data/metro'):({cloudEnv:'test',functionName:'restroomSearch'}), Page:p=>page=p,
+  require:path=>path.includes('/data/metro-coordinates')?require('../miniprogram/data/metro-coordinates'):path.includes('/data/metro')?require('../miniprogram/data/metro'):({cloudEnv:'test',functionName:'restroomSearch'}), Page:p=>page=p,
   wx:{showModal(){},cloud:{callFunction:o=>calls.push(o)}}
 });
 page.setData=function(p){Object.assign(this.data,p);}; page.onLoad();
@@ -19,7 +19,7 @@ console.log('PASS cloud response envelope, errors and stale responses');
 page.onLoad();page.userLocation={latitude:31,longitude:121};page.setData({city:'苏州市'});
 page.load({q:''});const sorted=calls[calls.length-1];
 assert.equal(sorted.data.scope,'city');assert.equal(sorted.data.city,'苏州市');
-sorted.success({result:{statusCode:200,data:{results:[{id:'far',name:'远',latitude:31.1,longitude:121},{id:'near',name:'近',latitude:31.001,longitude:121}]}}});
+sorted.success({result:{statusCode:200,data:{searchOrigin:{latitude:31,longitude:121,name:'指定地点'},results:[{id:'far',name:'远',latitude:31.1,longitude:121},{id:'near',name:'近',latitude:31.001,longitude:121}]}}});
 assert.equal(page.data.results[0].id,'near');assert.ok(page.data.results[0].distanceText.includes('米'));
 page.select(1);assert.equal(page.userLocation.latitude,31,'map selection must not move user');
 page.userLocation=null;page.load({q:'无定位'});calls[calls.length-1].success({result:{statusCode:200,data:{results:[{name:'距离不可用',latitude:31,longitude:121,distanceMeters:99}]}}});
@@ -29,7 +29,7 @@ console.log('PASS actual distance ordering, cross-city context, no-location and 
 // Location consent is mandatory; delayed location callbacks cannot override manual selection.
 let consent,locateCallback,locationCalls=0;const queue=[];let p;
 vm.runInNewContext(fs.readFileSync('miniprogram/pages/index/index.js','utf8'),{
- require:path=>path.includes('/data/metro')?require('../miniprogram/data/metro'):({cloudEnv:'test',functionName:'restroomSearch'}),Page:v=>p=v,
+ require:path=>path.includes('/data/metro-coordinates')?require('../miniprogram/data/metro-coordinates'):path.includes('/data/metro')?require('../miniprogram/data/metro'):({cloudEnv:'test',functionName:'restroomSearch'}),Page:v=>p=v,
  wx:{showModal:o=>consent=o,getLocation:o=>{locationCalls++;locateCallback=o;},cloud:{callFunction:o=>queue.push(o)}}
 });
 p.setData=function(v){Object.assign(this.data,v);};p.onLoad();assert.equal(locationCalls,0);
@@ -64,7 +64,7 @@ page.userLocation={latitude:31,longitude:121};page.switchSearchMode({currentTarg
 // A fresh page queries nearby toilets after consent, without a search tap.
 let initialPage,initialConsent,initialLocation;const initialCalls=[];
 vm.runInNewContext(fs.readFileSync('miniprogram/pages/index/index.js','utf8'),{
- require:path=>path.includes('/data/metro')?require('../miniprogram/data/metro'):({cloudEnv:'test',functionName:'restroomSearch'}),
+ require:path=>path.includes('/data/metro-coordinates')?require('../miniprogram/data/metro-coordinates'):path.includes('/data/metro')?require('../miniprogram/data/metro'):({cloudEnv:'test',functionName:'restroomSearch'}),
  Page:v=>initialPage=v,
  wx:{showModal:o=>initialConsent=o,getLocation:o=>initialLocation=o,cloud:{callFunction:o=>initialCalls.push(o)}}
 });
