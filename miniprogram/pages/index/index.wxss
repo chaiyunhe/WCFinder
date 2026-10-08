@@ -68,3 +68,30 @@
 @media(max-width:720px){.mobile-tabs{justify-content:center;padding:20rpx 24rpx}}
 
 .categories{flex-wrap:wrap}.categories .facility-card{flex:0 0 calc((100% - 32rpx)/3);box-sizing:border-box}
+
+.distance-row{display:flex;align-items:baseline;justify-content:space-between;gap:16rpx;margin-bottom:8rpx}
+.distance-row .distance{margin-bottom:0}
+.card .card-action{margin:0;padding:0;background:transparent;border-radius:0;line-height:40rpx;font-size:22rpx;flex-shrink:0;color:#7546c8}
+.card-action::after{border:0}
+.card .navigate-action{font-weight:600}
+
+.result-title .navigate-action{margin-left:auto;align-self:baseline}.result-title .restroom-tags{margin-left:0}
+
+/* Keep action columns stable while long names and addresses truncate. */
+.result-title{flex-wrap:nowrap;align-items:center}
+.result-title .name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.result-title .restroom-tags{flex:0 1 auto;min-width:0;max-width:38%;gap:4rpx}
+.result-title .restroom-tag{font-size:18rpx;padding:2rpx 4rpx}
+.result-title .navigate-action{flex:0 0 auto;margin-left:auto;align-self:center}
+.result-location{align-items:center}
+.result-location .meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .card-action{width:154rpx;box-sizing:border-box;text-align:right;flex:0 0 154rpx}
+
+.category-scroll{width:100%;white-space:nowrap;margin-top:14rpx}
+.category-scroll .categories{display:inline-flex;flex-wrap:nowrap;gap:12rpx;margin:0;padding:2rpx 4rpx 12rpx;min-width:100%;box-sizing:border-box}
+.category-scroll .categories .facility-card{flex:0 0 144rpx;width:144rpx;min-height:156rpx;flex-direction:column;gap:8rpx;padding:20rpx 12rpx;font-size:24rpx;white-space:nowrap}
+.category-scroll .facility-icon{margin:0;width:48rpx;height:48rpx;font-size:30rpx}
+
+.result-location{align-items:flex-end;gap:12rpx}
+.result-location .meta{flex:1;min-width:0;white-space:normal;overflow:visible;text-overflow:clip;word-break:break-all;overflow-wrap:break-word;text-align:left}
+.card .result-location .location-action{width:auto;flex:0 0 auto;white-space:nowrap}

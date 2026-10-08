@@ -112,10 +112,13 @@ Page({
     },fail:()=>{if(id===this.requestId&&this.alive)this.setData({error:'查询服务连接失败，请稍后重试'});},complete:()=>{if(id===this.requestId&&this.alive)this.setData({loading:false});}};
     this.task=this.request(query,callbacks);
   },
+  showFullName(e) { const index=Number(e.currentTarget.dataset.index);const p=this.data.results[index];if(!Number.isInteger(index)||!p)return;wx.showModal({title:'完整名称',content:p.name,showCancel:false,confirmText:'知道了'}); },
+  onNavigateResult(e) { const index=Number(e.currentTarget.dataset.index);const p=this.data.results[index];if(!Number.isInteger(index)||!p)return;this.openDestination(p); },
+  openDestination(p) { wx.openLocation({latitude:p.latitude,longitude:p.longitude,name:p.name,address:p.address,scale:17,fail:()=>wx.showToast({title:'无法打开地图，请稍后再试',icon:'none'})}); },
   onSelect(e) { this.select(Number(e.currentTarget.dataset.index)); },
   onMarker(e) { const index=Number(e.detail.markerId);if(!Number.isInteger(index)||!this.data.results[index])return;this.select(index);this.navigate(); },
   select(index) { const selected=this.data.results[index];if(selected)this.setData({selected,latitude:selected.latitude,longitude:selected.longitude,mobileView:'map'}); },
   switchView(e) { this.setData({mobileView:e.currentTarget.dataset.view}); },
   copyWechat() { wx.setClipboardData({data:'HiYunhe',fail:()=>wx.showToast({title:'复制失败，请手动添加 HiYunhe',icon:'none'})}); },
-  navigate() { const p=this.data.selected;if(p)wx.openLocation({latitude:p.latitude,longitude:p.longitude,name:p.name,address:p.address,scale:17,fail:()=>wx.showToast({title:'无法打开地图，请稍后再试',icon:'none'})}); }
+  navigate() { const p=this.data.selected;if(p)this.openDestination(p); }
 });
