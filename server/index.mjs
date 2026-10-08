@@ -69,6 +69,30 @@ export function mergeRestrooms(items) {
       mergedCount:g.members.length};
   });
 }
+function textIdentity(value) {
+  return String(value || '').normalize('NFKC').toLowerCase().replace(/[\s·•，,。()（）]/g, '');
+}
+export function mergeDuplicatePlaces(items) {
+  const groups=[];
+  for(const item of items){
+    const name=textIdentity(item.name),address=textIdentity(item.address);
+    // Full-pair distance checks prevent a chain of nearby distinct locations being collapsed.
+    const group=groups.find(g=>g.name===name && g.category===item.category &&
+      g.address===address && g.items.every(p=>distanceMeters(p,item)<=(address?20:3)));
+    if(group)group.items.push(item);
+    else groups.push({name,address,category:item.category,items:[item]});
+  }
+  return groups.map(g=>{
+    if(g.items.length===1)return g.items[0];
+    const representative=g.items[0];
+    const result={...representative,mergedCount:g.items.reduce((sum,p)=>sum+(p.mergedCount||1),0)};
+    if(representative.category==='toilet'){
+      const types=new Set(g.items.flatMap(p=>p.restroomTypes||[]));
+      result.restroomTypes=['男厕','女厕','第三卫生间'].filter(t=>types.has(t));
+    }
+    return result;
+  });
+}
 export function normalize(pois, category = 'toilet', origin) {
   const seen = new Set();
   let results = pois.flatMap(p => {
@@ -82,6 +106,7 @@ export function normalize(pois, category = 'toilet', origin) {
     return [item];
   });
   if (category === 'toilet') results = mergeRestrooms(results);
+  results = mergeDuplicatePlaces(results);
   if (origin) results.sort((a, b) => a.distanceMeters - b.distanceMeters);
   return results;
 }

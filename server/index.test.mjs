@@ -68,7 +68,7 @@ test('不同楼层入口、不同名称及较远位置不合并，其他类别�
  {...poi,id:'f',name:'另一商场女厕所'},
  {...poi,id:'f',name:'商场女厕所',location:'121.471,31.23'}
  ])assert.equal(normalize([male,other]).length,2);
- assert.equal(normalize([{...male,type:'交通设施服务;停车场'},{...male,id:'b',type:'交通设施服务;停车场'}],'parking').length,2);
+ assert.equal(normalize([{...male,type:'交通设施服务;停车场'},{...male,id:'b',type:'交通设施服务;停车场'}],'parking').length,1);
 });
 test('通用名称缺少地址不合并，相邻点不进行链式合并',()=>{
  assert.equal(normalize([{...poi,name:'男厕',address:'',adname:''},{...poi,id:'b',name:'女厕',address:'',adname:''}]).length,2);
@@ -105,4 +105,21 @@ test('充电站汽修店支持城市、附近、目标位置搜索并排除错�
    assert.equal(urls.at(-1).searchParams.get('types'),type);
   }
  }
+});
+
+test('五类设施按规范化名称、地址和近距离去重，保留导航位置',()=>{
+ for(const [category,name,type] of [['toilet','公园厕所','公共设施;公共厕所'],['parking','中心停车场','停车场'],['aed','中心 AED','医疗保健服务'],['charging','中心充电站','充电站'],['repair','中心汽修店','汽车维修']]){
+  const first={...poi,name,type};
+  const rows=normalize([first,{...first,id:'duplicate',name:' '+name+' ',location:'121.47003,31.23'}],category);
+  assert.equal(rows.length,1);assert.equal(rows[0].mergedCount,2);assert.equal(rows[0].longitude,121.47);
+  assert.equal(normalize([first,{...first,id:'other',address:'另一入口'}],category).length,2);
+  assert.equal(normalize([first,{...first,id:'far',location:'121.48,31.23'}],category).length,2);
+ }
+});
+test('去重保留同位置不同名称、不同楼层且防止链式合并',()=>{
+ const base={...poi,name:'中心停车场',type:'停车场'};
+ assert.equal(normalize([base,{...base,id:'b',name:'另一停车场'}],'parking').length,2);
+ assert.equal(normalize([base,{...base,id:'b',address:'地下二层'}],'parking').length,2);
+ const rows=normalize([0,1,2].map(n=>({...base,id:String(n),location:'121.47,'+(31.23+n*0.00013)})),'parking');
+ assert.equal(rows.length,2);
 });
