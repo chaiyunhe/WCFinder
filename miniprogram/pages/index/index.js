@@ -1,7 +1,7 @@
 const metroCoordinates = require('../../data/metro-coordinates');
 const metroData = require('../../data/metro');
 const { baseUrl, cloudEnv, functionName } = require('../../services/api-config');
-const labels = {toilet:'厕所',parking:'停车场',aed:'AED',charging:'充电站',repair:'汽修店'};
+const labels = {toilet:'厕所',parking:'停车场',charging:'充电站',repair:'汽修店',aed:'AED'};
 function distance(a,b) {
   const rad=Math.PI/180, dlat=(b.latitude-a.latitude)*rad,dlon=(b.longitude-a.longitude)*rad;
   const h=Math.sin(dlat/2)**2+Math.cos(a.latitude*rad)*Math.cos(b.latitude*rad)*Math.sin(dlon/2)**2;
