@@ -19,7 +19,7 @@ console.log('PASS cloud response envelope, errors and stale responses');
 page.onLoad();page.userLocation={latitude:31,longitude:121};page.setData({city:'苏州市'});
 page.load({q:''});const sorted=calls[calls.length-1];
 assert.equal(sorted.data.scope,'city');assert.equal(sorted.data.city,'苏州市');
-sorted.success({result:{statusCode:200,data:{searchOrigin:{latitude:31,longitude:121,name:'指定地点'},results:[{id:'far',name:'远',latitude:31.1,longitude:121},{id:'near',name:'近',latitude:31.001,longitude:121}]}}});
+sorted.success({result:{statusCode:200,data:{distanceType:'walking',searchOrigin:{latitude:31,longitude:121,name:'指定地点'},results:[{id:'far',name:'远',distanceMeters:900,latitude:31.1,longitude:121},{id:'near',name:'近',distanceMeters:120,latitude:31.001,longitude:121}]}}});
 assert.equal(page.data.results[0].id,'near');assert.ok(page.data.results[0].distanceText.includes('米'));
 page.select(1);assert.equal(page.userLocation.latitude,31,'map selection must not move user');
 page.userLocation=null;page.load({q:'无定位'});calls[calls.length-1].success({result:{statusCode:200,data:{results:[{name:'距离不可用',latitude:31,longitude:121,distanceMeters:99}]}}});

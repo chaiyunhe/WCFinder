@@ -118,6 +118,26 @@ export function normalizeCity(address) {
   const adcode = /^(11|12|31|50)/.test(code) ? code.slice(0, 2) + '0000' : /^(4190|4290|4690|6590)/.test(code) ? code : code.slice(0, 4) + '00';
   return {name, adcode};
 }
+export async function walkingDistances(items, origin, key, fetcher, reserve=()=>true) {
+  const rows=items.map(p=>({...p,distanceMeters:null,distanceType:'walking'}));
+  let cursor=0;
+  await Promise.all(Array.from({length:Math.min(4,rows.length)},async()=>{
+    while(cursor<rows.length){
+      const row=rows[cursor++];
+      if(!reserve())continue;
+      try{
+        const params=new URLSearchParams({key,origin:origin.longitude.toFixed(6)+','+origin.latitude.toFixed(6),destination:row.longitude.toFixed(6)+','+row.latitude.toFixed(6)});
+        const response=await fetcher('https://restapi.amap.com/v3/direction/walking?'+params,{timeoutMs:1200});
+        if(!response.ok)continue;
+        const data=await response.json(),paths=data.route && data.route.paths;
+        if(data.status!=='1'||!Array.isArray(paths))continue;
+        const distances=paths.map(p=>p.distance).filter(d=>typeof d==='number'||typeof d==='string'&&d.trim()!=='').map(Number).filter(d=>Number.isFinite(d)&&d>=0);
+        if(distances.length)row.distanceMeters=Math.min(...distances);
+      }catch{}
+    }
+  }));
+  return rows.sort((a,b)=>(a.distanceMeters??Infinity)-(b.distanceMeters??Infinity));
+}
 export function createHandler({ key = process.env.AMAP_WEB_KEY, fetcher = fetchJson } = {}) {
   let day = '', used = 0;
   const clients = new Map();
@@ -179,7 +199,12 @@ export function createHandler({ key = process.env.AMAP_WEB_KEY, fetcher = fetchJ
       const data = await upstream.json();
       if (data.status === '1' && action === 'locate') return reply(200, {city:normalizeCity(data.regeocode?.addressComponent || {})});
       if (data.status !== '1' || !Array.isArray(data.pois)) throw new Error('provider');
-      reply(200, {results:normalize(data.pois, category, searchOrigin), source:'高德地图', limited:true, category, searchOrigin:searchOrigin || null, distanceType:searchOrigin ? 'straight-line' : null});
+      const walking=url.searchParams.get('distanceMode')==='walking';
+      let results=normalize(data.pois, category, searchOrigin);
+      if(walking&&searchOrigin)results=await walkingDistances(results,searchOrigin,key,fetcher,()=>{
+        if(used>=Number(process.env.DAILY_QUERY_LIMIT||1000))return false;used++;return true;
+      });
+      reply(200, {results, source:'高德地图', limited:true, category, searchOrigin:searchOrigin || null, distanceType:searchOrigin ? (walking?'walking':'straight-line') : null});
     } catch { reply(502, {error:'地图查询暂时不可用，请稍后重试'}); }
   };
 }

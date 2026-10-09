@@ -6,7 +6,7 @@ exports.main = async (event = {}) => {
   if (!OPENID || APPID !== 'wx7f158580754f0989') return {statusCode:403,data:{error:'请从小程序发起查询'}};
   handler = handler || (await import('./handler.mjs')).createHandler();
   const params = new URLSearchParams();
-  for (const name of ['q','longitude','latitude','city','category','action','scope']) {
+  for (const name of ['q','longitude','latitude','city','category','action','scope','distanceMode']) {
     if (event[name] !== undefined) {
       if (!['string','number'].includes(typeof event[name])) return {statusCode:400,data:{error:'查询参数无效'}};
       params.set(name, String(event[name]));

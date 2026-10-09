@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer, normalize } from './index.mjs';
+import { createServer, normalize, walkingDistances } from './index.mjs';
 const poi={id:'a',name:'公共厕所',type:'公共设施;公共厕所',location:'121.47,31.23',address:'入口',adname:'黄浦区'};
 test('只保留有效厕所点位，并按供应商 ID 去重',()=>{
  assert.equal(normalize([poi,poi,{...poi,id:'b',location:'0,0'},{...poi,id:'c',type:'餐饮服务'}]).length,1);
@@ -122,4 +122,18 @@ test('去重保留同位置不同名称、不同楼层且防止链式合并',()=
  assert.equal(normalize([base,{...base,id:'b',address:'地下二层'}],'parking').length,2);
  const rows=normalize([0,1,2].map(n=>({...base,id:String(n),location:'121.47,'+(31.23+n*0.00013)})),'parking');
  assert.equal(rows.length,2);
+});
+
+test('步行距离按路线重排且失败不回退直线距离',async()=>{
+ const origin={longitude:121.47,latitude:31.23};
+ const items=[{id:'a',longitude:121.471,latitude:31.23,distanceMeters:10},{id:'b',longitude:121.472,latitude:31.23},{id:'c',longitude:121.473,latitude:31.23}];
+ const rows=await walkingDistances(items,origin,'test',async url=>{
+  const u=new URL(url);assert.equal(u.searchParams.get('origin'),'121.470000,31.230000');
+  const dest=u.searchParams.get('destination');
+  if(dest.startsWith('121.473'))throw Error('timeout');
+  return {ok:true,json:async()=>({status:'1',route:{paths:[{distance:dest.startsWith('121.471')?'900':'120'}]}})};
+ });
+ assert.deepEqual(rows.map(p=>p.id),['b','a','c']);assert.equal(rows[2].distanceMeters,null);
+ const limited=await walkingDistances(items,origin,'test',()=>{throw Error('must not call');},()=>false);
+ assert.ok(limited.every(p=>p.distanceMeters===null));
 });

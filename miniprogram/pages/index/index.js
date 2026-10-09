@@ -92,21 +92,21 @@ Page({
     const id=++this.requestId;if(this.task&&this.task.abort)this.task.abort();
     this.setData({loading:true,error:'',results:[],markers:[],selected:null,searched:true});
     // User coordinates are independent of map center and selected city.
-    const query={scope:'city',city:this.data.city,category:this.data.category,...params,...(params.scope==='nearby' ? this.userLocation||{} : {})};
+    const query={distanceMode:'walking',scope:'city',city:this.data.city,category:this.data.category,...params,...(params.scope==='nearby' ? this.userLocation||{} : {})};
     const callbacks={success:res=>{
       if(id!==this.requestId||!this.alive)return;
       if(res.statusCode!==200||!res.data||!Array.isArray(res.data.results)){this.setData({error:res.data&&res.data.error||'查询失败，请重试'});return;}
       const origin=valid(res.data.searchOrigin)?res.data.searchOrigin:(query.scope==='nearby'?this.userLocation:null);
       this.setData({distanceOriginLabel:origin?(query.scope==='nearby'?'当前位置':origin.name||params.q||'搜索位置'):''});
       const results=res.data.results.filter(p=>valid(p)&&typeof p.name==='string').map(p=>{
-        const meters=origin?distance(origin,p):null;
+        const meters=origin&&res.data.distanceType==='walking'&&Number.isFinite(p.distanceMeters)&&p.distanceMeters>=0?p.distanceMeters:null;
         const cityName=(this.data.cityName||'').replace(/市$/,'');
         const address=typeof p.address==='string'?p.address:'';
         const displayAddress=cityName && address.startsWith(cityName)
           ? address.slice(cityName.length).replace(/^市/,'').trim() : address;
         return {...p,displayAddress,distanceMeters:meters,distanceText:meters===null?'':meters<1000?'约 '+Math.round(meters/10)*10+' 米':'约 '+(meters/1000).toFixed(1)+' 公里'};
       });
-      if(origin)results.sort((a,b)=>a.distanceMeters-b.distanceMeters);
+      if(origin)results.sort((a,b)=>(a.distanceMeters===null?Infinity:a.distanceMeters)-(b.distanceMeters===null?Infinity:b.distanceMeters));
       const markers=results.map((p,i)=>({id:i,latitude:p.latitude,longitude:p.longitude,title:p.name,callout:{content:p.name,display:'BYCLICK',padding:8,borderRadius:8}}));
       const first=results[0];this.setData({results,markers,selected:first||null,...(first?{latitude:first.latitude,longitude:first.longitude}:{})});
     },fail:()=>{if(id===this.requestId&&this.alive)this.setData({error:'查询服务连接失败，请稍后重试'});},complete:()=>{if(id===this.requestId&&this.alive)this.setData({loading:false});}};
