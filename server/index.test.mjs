@@ -137,3 +137,19 @@ test('步行距离按路线重排且失败不回退直线距离',async()=>{
  const limited=await walkingDistances(items,origin,'test',()=>{throw Error('must not call');},()=>false);
  assert.ok(limited.every(p=>p.distanceMeters===null));
 });
+
+test('楼层补充到名称，不重复添加且不跨楼层合并',()=>{
+ const rows=normalize([{...poi,name:'玛丽来广场',address:'商场1层'},{...poi,id:'b',name:'玛丽来广场',address:'商场2层'}]);
+ assert.deepEqual(rows.map(p=>p.name),['玛丽来广场F1','玛丽来广场F2']);
+ for(const [name,address,expected] of [['商场F1','一层','商场F1'],['商场','地下二层','商场B2'],['商场','128号3号楼','商场'],['商场','F1/F2','商场']]){
+  assert.equal(normalize([{...poi,name,address}])[0].name,expected);
+ }
+});
+
+test('驾车距离请求驾车接口，按路线排序且失败不使用步行值',async()=>{
+ const rows=await walkingDistances([{id:'a',longitude:121.47,latitude:31.23},{id:'b',longitude:121.48,latitude:31.23}],{longitude:121.46,latitude:31.23},'test',async url=>{
+  const u=new URL(url);assert.equal(u.pathname,'/v3/direction/driving');assert.equal(u.searchParams.get('strategy'),'0');
+  return {ok:true,json:async()=>({status:'1',route:{paths:[{distance:u.searchParams.get('destination').startsWith('121.47')?'900':'300'}]}})};
+ },()=>true,'driving');
+ assert.deepEqual(rows.map(p=>p.id),['b','a']);assert.ok(rows.every(p=>p.distanceType==='driving'));
+});

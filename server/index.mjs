@@ -93,6 +93,17 @@ export function mergeDuplicatePlaces(items) {
     return result;
   });
 }
+
+export function floorLabel(text) {
+  const value=String(text || '').normalize('NFKC');
+  const numbers={'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10};
+  const labels=new Set();
+  for(const match of value.matchAll(/(?:地下|负)([一二两三四五六七八九十]|[1-9]\d?)(?:层|楼)|B([1-9]\d?)(?!\d)|F([1-9]\d?)(?!\d)|([1-9]\d?)F|([一二两三四五六七八九十]|[1-9]\d?)层/gi)){
+    const n=match[1]||match[2]||match[3]||match[4]||match[5];
+    labels.add((match[1]||match[2]?'B':'F')+(numbers[n]||Number(n)));
+  }
+  return labels.size===1?[...labels][0]:'';
+}
 export function normalize(pois, category = 'toilet', origin) {
   const seen = new Set();
   let results = pois.flatMap(p => {
@@ -101,6 +112,9 @@ export function normalize(pois, category = 'toilet', origin) {
     if (!matches || !p.id || !p.name || !validCoordinates(longitude, latitude) || seen.has(p.id)) return [];
     seen.add(p.id);
     const item = { id: String(p.id), name: String(p.name), address: [p.cityname, p.adname, typeof p.address === 'string' ? p.address : ''].filter(v => typeof v === 'string' && v).join(' '), longitude, latitude, source: '高德地图', category };
+    const existingFloor=floorLabel(item.name);
+    const floor=existingFloor || floorLabel(typeof p.address==='string'?p.address:'');
+    if(floor){item.floor=floor;if(!existingFloor)item.name+=floor;}
     if (category === 'toilet') item.restroomTypes = restroomTypes(p.name);
     if (origin) item.distanceMeters = distanceMeters(origin, item);
     return [item];
@@ -118,8 +132,8 @@ export function normalizeCity(address) {
   const adcode = /^(11|12|31|50)/.test(code) ? code.slice(0, 2) + '0000' : /^(4190|4290|4690|6590)/.test(code) ? code : code.slice(0, 4) + '00';
   return {name, adcode};
 }
-export async function walkingDistances(items, origin, key, fetcher, reserve=()=>true) {
-  const rows=items.map(p=>({...p,distanceMeters:null,distanceType:'walking'}));
+export async function walkingDistances(items, origin, key, fetcher, reserve=()=>true, mode='walking') {
+  const rows=items.map(p=>({...p,distanceMeters:null,distanceType:mode}));
   let cursor=0;
   await Promise.all(Array.from({length:Math.min(4,rows.length)},async()=>{
     while(cursor<rows.length){
@@ -127,7 +141,8 @@ export async function walkingDistances(items, origin, key, fetcher, reserve=()=>
       if(!reserve())continue;
       try{
         const params=new URLSearchParams({key,origin:origin.longitude.toFixed(6)+','+origin.latitude.toFixed(6),destination:row.longitude.toFixed(6)+','+row.latitude.toFixed(6)});
-        const response=await fetcher('https://restapi.amap.com/v3/direction/walking?'+params,{timeoutMs:1200});
+        if(mode==='driving'){params.set('strategy','0');params.set('extensions','base');}
+        const response=await fetcher('https://restapi.amap.com/v3/direction/'+mode+'?'+params,{timeoutMs:1200});
         if(!response.ok)continue;
         const data=await response.json(),paths=data.route && data.route.paths;
         if(data.status!=='1'||!Array.isArray(paths))continue;
@@ -199,12 +214,13 @@ export function createHandler({ key = process.env.AMAP_WEB_KEY, fetcher = fetchJ
       const data = await upstream.json();
       if (data.status === '1' && action === 'locate') return reply(200, {city:normalizeCity(data.regeocode?.addressComponent || {})});
       if (data.status !== '1' || !Array.isArray(data.pois)) throw new Error('provider');
-      const walking=url.searchParams.get('distanceMode')==='walking';
+      const mode=url.searchParams.get('distanceMode');
+      const routing=['walking','driving'].includes(mode);
       let results=normalize(data.pois, category, searchOrigin);
-      if(walking&&searchOrigin)results=await walkingDistances(results,searchOrigin,key,fetcher,()=>{
+      if(routing&&searchOrigin)results=await walkingDistances(results,searchOrigin,key,fetcher,()=>{
         if(used>=Number(process.env.DAILY_QUERY_LIMIT||1000))return false;used++;return true;
-      });
-      reply(200, {results, source:'高德地图', limited:true, category, searchOrigin:searchOrigin || null, distanceType:searchOrigin ? (walking?'walking':'straight-line') : null});
+      },mode);
+      reply(200, {results, source:'高德地图', limited:true, category, searchOrigin:searchOrigin || null, distanceType:searchOrigin ? (routing?mode:'straight-line') : null});
     } catch { reply(502, {error:'地图查询暂时不可用，请稍后重试'}); }
   };
 }

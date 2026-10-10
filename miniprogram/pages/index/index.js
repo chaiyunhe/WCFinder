@@ -1,7 +1,7 @@
 const metroCoordinates = require('../../data/metro-coordinates');
 const metroData = require('../../data/metro');
 const { baseUrl, cloudEnv, functionName } = require('../../services/api-config');
-const labels = {toilet:'厕所',parking:'停车场',charging:'充电站',repair:'汽修店',aed:'AED'};
+const labels = {toilet:'卫生间',parking:'停车场',charging:'充电站',repair:'汽修店',aed:'AED'};
 function distance(a,b) {
   const rad=Math.PI/180, dlat=(b.latitude-a.latitude)*rad,dlon=(b.longitude-a.longitude)*rad;
   const h=Math.sin(dlat/2)**2+Math.cos(a.latitude*rad)*Math.cos(b.latitude*rad)*Math.sin(dlon/2)**2;
@@ -9,7 +9,7 @@ function distance(a,b) {
 }
 function valid(p) { return p && Number.isFinite(p.latitude) && Number.isFinite(p.longitude) && Math.abs(p.latitude)<=90 && Math.abs(p.longitude)<=180; }
 Page({
-  data: { distanceOriginLabel:'',metroLines:[],metroStations:[],metroLineIndex:0,metroStationIndex:0,searchMode:'nearby',metroLine:'',metroStation:'',query:'',city:'',cityName:'请选择城市',region:[],category:'toilet',categoryLabel:'厕所',hasLocation:false,locating:false,results:[], selected:null, markers:[], loading:false, error:'', searched:false, mobileView:'list', latitude:31.2304, longitude:121.4737 },
+  data: { distanceLabel:'步行距离',distanceOriginLabel:'',metroLines:[],metroStations:[],metroLineIndex:0,metroStationIndex:0,searchMode:'nearby',metroLine:'',metroStation:'',query:'',city:'',cityName:'请选择城市',region:[],category:'toilet',categoryLabel:'卫生间',hasLocation:false,locating:false,results:[], selected:null, markers:[], loading:false, error:'', searched:false, mobileView:'list', latitude:31.2304, longitude:121.4737 },
   onLoad() { this.requestId=0;this.locationId=0;this.cityRevision=0;this.alive=true;this.nearby(); },
   onUnload() { this.alive=false;this.requestId++;this.locationId++;if(this.task&&this.task.abort)this.task.abort(); },
   onSearch(e) { this.setData({query:e.detail.value}); },
@@ -45,7 +45,7 @@ Page({
   },
   onCategoryChange(e) {
     const category=e.currentTarget.dataset.category;if(!labels[category]||category===this.data.category)return;
-    this.locationId++;this.clearResults();this.setData({category,categoryLabel:labels[category],locating:false});
+    this.locationId++;this.clearResults();this.setData({category,categoryLabel:labels[category],distanceLabel:['parking','charging','repair'].includes(category)?'驾车距离':'步行距离',locating:false});
     if(this.data.city||this.data.searchMode==='nearby')this.search();
   },
   search() {
@@ -63,7 +63,7 @@ Page({
   nearby() { this.locate(true); },
   locate(nearby) {
     const token=++this.locationId, revision=this.cityRevision;
-    wx.showModal({title:'使用当前位置',content:'经你同意后获取位置，通过查询服务发送给高德地图，用于识别当前城市、查找附近厕所、停车场、AED、充电站、汽修店，并估算距离。取消后仍可手动选择城市搜索。',success:answer=>{
+    wx.showModal({title:'使用当前位置',content:'经你同意后获取位置，通过查询服务发送给高德地图，用于识别当前城市、查找附近卫生间、停车场、AED、充电站、汽修店，并估算距离。取消后仍可手动选择城市搜索。',success:answer=>{
       if(!this.alive||token!==this.locationId||!answer.confirm)return;
       this.setData({locating:true,error:''});
       wx.getLocation({type:'gcj02',success:pos=>{
@@ -92,14 +92,14 @@ Page({
     const id=++this.requestId;if(this.task&&this.task.abort)this.task.abort();
     this.setData({loading:true,error:'',results:[],markers:[],selected:null,searched:true});
     // User coordinates are independent of map center and selected city.
-    const query={distanceMode:'walking',scope:'city',city:this.data.city,category:this.data.category,...params,...(params.scope==='nearby' ? this.userLocation||{} : {})};
+    const query={distanceMode:['parking','charging','repair'].includes(this.data.category)?'driving':'walking',scope:'city',city:this.data.city,category:this.data.category,...params,...(params.scope==='nearby' ? this.userLocation||{} : {})};
     const callbacks={success:res=>{
       if(id!==this.requestId||!this.alive)return;
       if(res.statusCode!==200||!res.data||!Array.isArray(res.data.results)){this.setData({error:res.data&&res.data.error||'查询失败，请重试'});return;}
       const origin=valid(res.data.searchOrigin)?res.data.searchOrigin:(query.scope==='nearby'?this.userLocation:null);
       this.setData({distanceOriginLabel:origin?(query.scope==='nearby'?'当前位置':origin.name||params.q||'搜索位置'):''});
       const results=res.data.results.filter(p=>valid(p)&&typeof p.name==='string').map(p=>{
-        const meters=origin&&res.data.distanceType==='walking'&&Number.isFinite(p.distanceMeters)&&p.distanceMeters>=0?p.distanceMeters:null;
+        const meters=origin&&res.data.distanceType===query.distanceMode&&Number.isFinite(p.distanceMeters)&&p.distanceMeters>=0?p.distanceMeters:null;
         const cityName=(this.data.cityName||'').replace(/市$/,'');
         const address=typeof p.address==='string'?p.address:'';
         const displayAddress=cityName && address.startsWith(cityName)

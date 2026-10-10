@@ -78,3 +78,9 @@ initialCalls[0].success({result:{statusCode:200,data:{city:{name:'上海市',adc
 assert.equal(initialCalls.length,2);
 assert.equal(initialCalls[1].data.scope,'nearby');assert.equal(initialCalls[1].data.category,'toilet');
 console.log('PASS first entry automatically queries nearby toilets after consent');
+
+for(const category of ['toilet','parking','charging','repair','aed']){
+ page.setData({category,city:'上海市'});page.load({scope:'nearby'});
+ assert.equal(calls.at(-1).data.distanceMode,['parking','charging','repair'].includes(category)?'driving':'walking');
+}
+console.log('PASS five-category route mode selection');

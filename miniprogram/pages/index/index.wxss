@@ -95,3 +95,11 @@
 .result-location{align-items:flex-end;gap:12rpx}
 .result-location .meta{flex:1;min-width:0;white-space:normal;overflow:visible;text-overflow:clip;word-break:break-all;overflow-wrap:break-word;text-align:left}
 .card .result-location .location-action{width:auto;flex:0 0 auto;white-space:nowrap}
+
+.metro-fields{margin-top:10rpx;margin-bottom:12rpx}
+.metro-fields>.note{font-size:22rpx;line-height:1.5}
+.metro-select-row{gap:12rpx;margin-top:8rpx}
+.metro-select-row picker:first-child{flex:0 0 38%}
+.metro-select-row .metro-control{display:flex;align-items:center;justify-content:space-between;gap:8rpx;height:76rpx;line-height:1.3;padding:0 16rpx;margin:0;border-radius:12rpx;background:#faf8fd}
+.metro-value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.metro-chevron{flex-shrink:0;color:#93899e;font-size:24rpx}
